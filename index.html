@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sổ bán hàng</title>
+<meta name="theme-color" content="#1f6b4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sổ bán hàng">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: one phone column — result card on top, two ledgers (sold / bought), fixed bottom tab bar. */
+:root{
+  --bg:#f3f6f1; --surface:#ffffff; --ink:#18241d; --muted:#5f6f64; --line:#dfe6dc;
+  --accent:#1f6b4a; --accent-soft:#e2efe6; --accent-ink:#ffffff;
+  --gain:#167a4a; --loss:#c23b2a; --loss-soft:#fbe7e3; --gain-soft:#dff2e6;
+  --chip:#eef2ec;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111814; --surface:#19231d; --ink:#e9f0ea; --muted:#9db0a3; --line:#2a3830;
+  --accent:#5cc493; --accent-soft:#1f3529; --accent-ink:#0d1611;
+  --gain:#5cc493; --loss:#ff7a66; --loss-soft:#3a201c; --gain-soft:#1c3427; --chip:#223028; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111814; --surface:#19231d; --ink:#e9f0ea; --muted:#9db0a3; --line:#2a3830;
+  --accent:#5cc493; --accent-soft:#1f3529; --accent-ink:#0d1611;
+  --gain:#5cc493; --loss:#ff7a66; --loss-soft:#3a201c; --gain-soft:#1c3427; --chip:#223028; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:16px 120px;display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:22px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px;width:100%;min-width:0}
+input:focus{border-color:var(--accent);outline:none}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.store{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.daynav{display:flex;align-items:center;gap:8px}
+.daynav button{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font-size:20px;display:grid;place-items:center}
+.daynav button:disabled{opacity:.35;cursor:default}
+.daylabel{min-width:0;text-align:center;flex:1}
+.daylabel b{display:block;font-family:var(--display);font-size:20px;font-weight:600}
+.daylabel span{font-size:13px;color:var(--muted)}
+
+.result{border-radius:22px;padding:20px;background:var(--gain-soft);display:flex;flex-direction:column;gap:6px}
+.result.loss{background:var(--loss-soft)}
+.result.zero{background:var(--accent-soft)}
+.result .label{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.result .big{font-family:var(--display);font-weight:800;font-size:44px;line-height:1.05;color:var(--gain);letter-spacing:-.02em}
+.result.loss .big{color:var(--loss)}
+.result.zero .big{color:var(--ink)}
+.result .split{display:flex;gap:18px;flex-wrap:wrap;font-size:15px;color:var(--muted)}
+.result .split b{color:var(--ink)}
+
+.card{background:var(--surface);border-radius:18px;border:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:12px}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card-head .tot{font-weight:700}
+
+.prod{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding-block:10px;border-top:1px solid var(--line)}
+.prod:first-of-type{border-top:0}
+.prod .name{font-weight:600;font-size:17px;min-width:0}
+.prod .meta{font-size:13px;color:var(--muted);grid-column:1}
+.step{display:flex;align-items:center;gap:6px;grid-row:span 2}
+.step button{width:48px;height:48px;border-radius:14px;border:0;background:var(--chip);font-size:24px;font-weight:600;display:grid;place-items:center}
+.step button.plus{background:var(--accent);color:var(--accent-ink)}
+.step input{width:56px;text-align:center;font-weight:700;font-size:19px;padding:10px 4px}
+
+.buy{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding-block:10px;border-top:1px solid var(--line)}
+.buy:first-of-type{border-top:0}
+.buy .name{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.buy .qty{font-size:13px;color:var(--muted);font-weight:400;display:block}
+.buy .del{width:40px;height:40px;border-radius:12px;border:0;background:transparent;color:var(--muted);font-size:20px}
+.empty{color:var(--muted);font-size:15px;padding-block:6px}
+.extra-sales{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.spline{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;font-size:15px}
+.spr{display:flex;align-items:center;gap:4px;font-weight:600}
+.del.sm{width:34px;height:34px;border-radius:10px;border:0;background:transparent;color:var(--muted);font-size:18px}
+.tag{font-size:12px;font-weight:600;color:var(--muted);background:var(--chip);border-radius:999px;padding:2px 8px}
+.tag.free{color:var(--accent);background:var(--accent-soft)}
+.panel.sp{width:100%}
+.links{display:flex;flex-wrap:wrap;gap:6px 18px}
+.left{color:var(--accent);font-weight:600}
+.out{color:var(--loss);font-weight:700}
+.alert{background:var(--loss-soft);color:var(--ink);border-radius:14px;padding:12px 14px;font-size:15px}
+.srow{display:flex;flex-direction:column;gap:8px;padding-block:12px;border-top:1px solid var(--line)}
+.srow:first-of-type{border-top:0}
+.srow-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.srow-top>b{font-size:17px}
+.sval{font-size:15px}
+.sval b{font-size:18px}
+.btn.sm{padding:10px 14px;font-size:15px}
+.srow .hint{margin:0}
+.ok{color:var(--accent);font-weight:600;font-size:15px}
+.irow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:10px;border-top:1px solid var(--line)}
+.irow:first-of-type{border-top:0}
+.irow-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.irow-txt .out{font-size:15px}
+.irow .btn{flex:none}
+.hist{display:flex;flex-direction:column;background:var(--bg);border-radius:12px;padding:6px 12px}
+.hrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding-block:7px;border-top:1px solid var(--line);font-size:14px;align-items:baseline}
+.hrow:first-child{border-top:0}
+.hd{color:var(--muted);min-width:84px}
+.hb .in{color:var(--accent);font-weight:600}
+.pstock{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.pstock select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:6px 8px;max-width:100%}
+.pedit{padding-block:8px;border-top:1px solid var(--line)}
+.puse{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--bg);border-radius:12px;padding:10px 12px}
+.fixrow{display:grid;grid-template-columns:1fr 90px auto;gap:8px;align-items:center}
+.fixrow label{font-size:14px;color:var(--muted)}
+.fixrow input{padding:10px 8px;text-align:center}
+.link.quiet{color:var(--muted);font-size:13px;align-self:flex-start}
+.uses{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;align-items:flex-start;background:var(--bg);border-radius:12px;padding:10px 12px;width:100%}
+.use{display:grid;grid-template-columns:1fr 80px auto 34px;gap:8px;align-items:center;width:100%}
+.use input{padding:8px;text-align:center}
+.use-n{font-weight:600;min-width:0;overflow-wrap:anywhere}
+.use-u{font-size:14px;color:var(--muted)}
+.srow-top .x,.irow-txt .x,.name .x{border:0;background:var(--chip);color:var(--muted);width:26px;height:26px;border-radius:50%;font-size:15px;margin-right:8px;vertical-align:middle;line-height:1}
+.lost{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--loss-soft);color:var(--loss);font-size:14px}
+.lost b{font-size:16px}
+.lost span{color:var(--ink);opacity:.8}
+.btn-mini{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600}
+.tag.warn{color:var(--loss);background:var(--loss-soft)}
+.card-head h2::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle;background:var(--muted)}
+.sec-vendu .card-head h2::before{background:var(--gain)}
+.sec-offert .card-head h2::before,.loss-card .card-head h2::before{background:var(--loss)}
+.sec-fait .card-head h2::before{background:var(--accent)}
+.sec-achat .card-head h2::before{background:var(--ink)}
+.srow-top{align-items:center}
+.srow-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+.toggle{display:flex;background:var(--chip);border-radius:12px;padding:3px;gap:3px;flex:none}
+.toggle button{border:0;background:transparent;border-radius:9px;padding:9px 12px;font-weight:600;font-size:14px;color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.toggle button[data-act="ifini"][aria-pressed="true"]{color:var(--loss)}
+.toggle.wide{width:100%}.toggle.wide button{flex:1}
+.days{display:flex;flex-direction:column}
+.dayrow{border-top:1px solid var(--line)}
+.dayrow-head{width:100%;display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:baseline;border:0;background:transparent;padding:12px 2px;text-align:left;font-size:15px}
+.dayrow-head[aria-expanded="true"]{font-weight:700}
+.gain{color:var(--gain)}
+.daydetail{display:flex;flex-direction:column;gap:2px;padding:4px 12px 12px;background:var(--bg);border-radius:12px;margin-bottom:10px}
+.daydetail h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:10px 0 2px}
+.dline{display:flex;justify-content:space-between;gap:10px;font-size:15px;padding-block:3px}
+.dline.red b{color:var(--loss)} .dline.green b{color:var(--gain)}
+.chips .chip[data-act="compte"][aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pedit:first-of-type{border-top:0}
+.row-btns{display:flex;flex-wrap:wrap;gap:8px}
+.row-btns .btn{flex:1 1 auto}
+.chip.extra{background:transparent;border:1.5px dashed var(--line);color:var(--accent);font-weight:600}
+.chip.extra[aria-pressed="true"]{border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.panel{display:flex;flex-direction:column;gap:12px;background:var(--accent-soft);border-radius:16px;padding:16px}
+.panel-head{display:flex;flex-direction:column;gap:2px}
+.panel-head b{font-family:var(--display);font-size:20px;font-weight:600}
+.panel-head span{font-size:14px;color:var(--muted)}
+.flabel{font-size:13px;font-weight:600;color:var(--muted)}
+.packrow{display:grid;grid-template-columns:1.4fr auto .8fr 1fr;gap:6px;align-items:center}
+.packrow span{color:var(--muted);font-size:14px}
+.packrow input{padding:10px 8px}
+.chip.del-chip{background:var(--loss-soft)}
+.chip.del-chip span{font-weight:700;margin-left:4px}
+.link{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;font-size:14px}
+.opt{font-weight:400}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.step.wide{grid-row:auto}
+.step.wide input{flex:1;width:auto}
+.sum{margin:0;font-weight:700;font-size:16px;min-height:1.4em}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid transparent;background:var(--chip);border-radius:999px;padding:8px 14px;font-size:15px;font-weight:500}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form .full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.qtyrow{display:flex;gap:6px}
+.qtyrow input:first-child{flex:1}
+.qtyrow input:last-child{width:84px;flex:none}
+.btn{border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:16px;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:8px;z-index:5}
+.tabs button{flex:1;max-width:150px;border:0;background:transparent;border-radius:14px;padding:10px 6px;font-weight:600;font-size:15px;color:var(--muted)}
+.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--ink)}
+
+.seg{display:flex;background:var(--chip);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:10px 4px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:0}
+.kpi span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.kpi b{display:block;font-size:18px;font-family:var(--display);font-weight:800;overflow-wrap:anywhere}
+.kpi.g b{color:var(--gain)} .kpi.l b{color:var(--loss)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:11px var(--body)}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.rank{display:flex;justify-content:space-between;gap:10px;padding-block:8px;border-top:1px solid var(--line)}
+.rank:first-of-type{border-top:0}
+
+.pedit{display:grid;grid-template-columns:1fr 110px 44px;gap:8px;align-items:center}
+.pedit .del{width:44px;height:44px;border-radius:12px;border:0;background:var(--chip);font-size:18px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;display:flex;gap:14px;align-items:center;font-size:15px;z-index:9;max-width:calc(100% - 32px)}
+.toast button{border:0;background:transparent;color:var(--bg);font-weight:700;text-decoration:underline}
+.note{font-size:13px;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:no-preference){.result .big{transition:color .2s}}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.prefs{display:flex;gap:6px}
+.prefs button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:700;color:var(--muted)}
+.prefs button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);background:var(--accent-soft)}
+.net{background:var(--loss-soft);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:14px}
+.net.ok{background:var(--accent-soft)}
+.soon{color:#a15c00;font-weight:700}
+.alert.soonbox{background:#fff1d6;color:#3d2a00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .alert.soonbox{background:#3a2c10;color:#f6e7c8}:root:not([data-theme="light"]) .soon{color:#f0b85a}}
+:root[data-theme="dark"] .alert.soonbox{background:#3a2c10;color:#f6e7c8}
+:root[data-theme="dark"] .soon{color:#f0b85a}
+.cost{grid-column:1/-1;font-size:14px;color:var(--muted)}
+.cost b{color:var(--ink)}
+.cost .good{color:var(--gain);font-weight:700}
+.fedit{display:grid;grid-template-columns:1fr 130px 44px;gap:8px;align-items:center;padding-block:6px}
+.fedit .del{width:44px;height:44px;border-radius:12px;border:0;background:var(--chip);font-size:18px;color:var(--muted)}
+.big-text .wrap{zoom:1.15}
+html{padding-top:env(safe-area-inset-top,0px)}
+.filebtn{display:block;text-align:center;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <p class="note">…</p>
+</div>
+<nav class="tabs" aria-label="Sections">
+  <button id="tab-jour" data-tab="jour" aria-current="page"></button>
+  <button id="tab-stock" data-tab="stock"></button>
+  <button id="tab-bilan" data-tab="bilan"></button>
+  <button id="tab-prix" data-tab="prix"></button>
+</nav>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ---------- language ---------- */
+const PREF_KEY = 'carnet-prefs-v1';
+const prefs = (()=>{ try{ return JSON.parse(localStorage.getItem(PREF_KEY)||'{}'); }catch{ return {}; } })();
+function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }catch{} }
+let LANG = prefs.lang==='fr' ? 'fr' : prefs.lang==='vi' ? 'vi' : 'vi';
+const L = (fr, vi) => LANG==='vi' ? vi : fr;
+const LOC = () => LANG==='vi' ? 'vi-VN' : 'fr-FR';
+
+/* Words of the default lists, shown in Vietnamese when that language is chosen. */
+const VI = {
+  'bánh mì':'Bánh mì','flan':'Bánh flan','thé':'Trà','crêpes':'Bánh crêpe',
+  'œufs':'Trứng','pain':'Vỏ bánh mì','lait':'Sữa','lait concentré':'Sữa đặc','sucre':'Đường','viande':'Thịt',
+  'pâté':'Pa tê','herbes':'Rau thơm','concombres':'Dưa leo','carottes':'Cà rốt','sauce':'Nước sốt',
+  'glace':'Đá','gobelets':'Ly','sachets':'Túi','gaz':'Ga',
+  'plateau':'khay','œuf':'quả trứng','pains':'ổ','brique':'hộp','litre':'lít','litres':'lít','boîte':'hộp','boîtes':'hộp',
+  'sac':'bao','botte':'bó','bottes':'bó','bouteille':'chai','paquet':'gói','gobelet':'ly','sachet':'túi','pièce':'cái','flans':'bánh flan',
+};
+const tr = w => { if(LANG!=='vi' || !w) return w||''; const v=VI[String(w).toLowerCase()]; return v || w; };
+const trU = w => { if(LANG!=='vi' || !w) return w||''; const k=String(w).toLowerCase(); if(k==='œufs') return 'quả trứng'; if(k==='pain') return 'ổ'; const v=VI[k]; return v ? v.toLowerCase() : w; };
+
+const DEFAULT_PRODUITS = [
+  {id:'banhmi', nom:'Bánh mì', prix:25000, utilise:[{ref:'pain', qte:1}], cuisine:false},
+  {id:'flan', nom:'Flan', prix:10000, utilise:[], cuisine:true},
+  {id:'the', nom:'Thé', prix:10000, utilise:[], cuisine:true},
+];
+/* How each thing is bought: "par" = the pack she pays for, "contenu" × "unite" = what is inside. */
+const DEFAULT_ARTICLES = [
+  {id:'oeufs', nom:'Œufs', par:'plateau', contenu:30, unite:'œufs'},
+  {id:'pain', nom:'Pain', par:'pain', contenu:1, unite:'pain'},
+  {id:'lait', nom:'Lait', par:'brique', contenu:1, unite:'litre'},
+  {id:'laitconc', nom:'Lait concentré', par:'boîte', contenu:380, unite:'g'},
+  {id:'sucre', nom:'Sucre', par:'sac', contenu:1, unite:'kg'},
+  {id:'viande', nom:'Viande', par:'kg', contenu:1, unite:'kg'},
+  {id:'pate', nom:'Pâté', par:'boîte', contenu:1, unite:'boîte'},
+  {id:'herbes', nom:'Herbes', par:'botte', contenu:1, unite:'botte'},
+  {id:'concombres', nom:'Concombres', par:'kg', contenu:1, unite:'kg'},
+  {id:'carottes', nom:'Carottes', par:'kg', contenu:1, unite:'kg'},
+  {id:'sauce', nom:'Sauce', par:'bouteille', contenu:1, unite:'bouteille'},
+  {id:'the', nom:'Thé', par:'paquet', contenu:1, unite:'paquet'},
+  {id:'glace', nom:'Glace', par:'sac', contenu:1, unite:'sac'},
+  {id:'gobelets', nom:'Gobelets', par:'paquet', contenu:50, unite:'gobelets'},
+  {id:'sachets', nom:'Sachets', par:'paquet', contenu:100, unite:'sachets'},
+  {id:'gaz', nom:'Gaz', par:'bouteille', contenu:1, unite:'bouteille'},
+];
+const DEFAULT_COMPTE = {pain:true, oeufs:true, lait:true, laitconc:true, gobelets:true};
+const LS_KEY = 'carnet-banhmi-v1', QUEUE_KEY = 'carnet-queue-v1';
+
+const S = {
+  tab:'jour', day: todayKey(), periode:'semaine',
+  days:{}, produits:null, articles:null, frais:[], mode:'loading',
+  pick:null, editChips:false, special:null, addIng:null, bDay:null, secAdd:null,
+  cookOpen:null, useNew:null, fixKey:null, puseOpen:null, renderWanted:false, restore:null,
+  offline:false,
+};
+let db = null, downloads = null;
+
+/* ---------- helpers ---------- */
+function todayKey(){ return keyOf(new Date()); }
+function keyOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dateOf(k){ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); }
+function shift(k,n){ const d=dateOf(k); d.setDate(d.getDate()+n); return keyOf(d); }
+const daysInMonth = k => { const d=dateOf(k); return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); };
+const fmt = n => Math.round(n).toLocaleString(LOC()) + ' ₫';
+const signed = n => (n>0?'+':n<0?'−':'') + Math.abs(Math.round(n)).toLocaleString(LOC()) + ' ₫';
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid = () => Math.random().toString(36).slice(2,10);
+const num = v => { const n = parseFloat(String(v).replace(/\s/g,'').replace(',', '.')); return isFinite(n) && n>0 ? n : 0; };
+const dec = n => (Math.round(n*100)/100).toLocaleString(LOC());
+const raw = n => String(Math.round((n||0)*100)/100);
+const lc = w => String(w||'').toLowerCase();
+const UNITS = /^(kg|g|l|ml|cl)$/i;
+function pl(word, n){
+  if(LANG==='vi') return trU(word);
+  if(!word || n<2 || UNITS.test(word) || /[sxz]$/i.test(word)) return word||'';
+  return /(au|eu)$/i.test(word) ? word+'x' : word+'s';
+}
+const shortDate = k => dateOf(k).toLocaleDateString(LOC(),{day:'numeric',month:'short'});
+const dayShort = k => dateOf(k).toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short'});
+const daysBetween = (a,b) => Math.round((dateOf(b)-dateOf(a))/864e5);
+function dayLabel(k){
+  const t=todayKey();
+  if(k===t) return L("Aujourd'hui",'Hôm nay');
+  if(k===shift(t,-1)) return L('Hier','Hôm qua');
+  return dateOf(k).toLocaleDateString(LOC(),{weekday:'long'}).replace(/^./,c=>c.toUpperCase());
+}
+
+function day(k){ return S.days[k] || {achats:[], ventes:[], mouvements:[]}; }
+function ensureDay(k){ if(!S.days[k]) S.days[k]={achats:[],ventes:[],mouvements:[]}; return S.days[k]; }
+function normVentes(v){
+  if(Array.isArray(v)) return v;
+  if(v && typeof v==='object') return Object.entries(v).map(([pid,x])=>({id:pid, prodId:pid, nom:x.nom, prix:x.prix, qte:x.qte}));
+  return [];
+}
+const normDay = x => ({achats:Array.isArray(x?.achats)?x.achats:[], ventes:normVentes(x?.ventes), mouvements:Array.isArray(x?.mouvements)?x.mouvements:[]});
+const normalLine = (d,pid) => d.ventes.find(v=>v.prodId===pid && !v.special);
+const offertLine = (d,pid) => d.ventes.find(v=>v.prodId===pid && v.special && v.prix===0 && !v.pour);
+const faitMove = (d,pid) => d.mouvements.find(m=>m.cible==='p' && m.kind==='fait' && m.ref===pid);
+function totals(k){
+  const d=day(k);
+  const v = d.ventes.reduce((s,x)=>s+x.qte*x.prix,0);
+  const a = d.achats.reduce((s,x)=>s+x.prix,0);
+  return {v,a,b:v-a};
+}
+const article = id => S.articles.find(a=>a.id===id);
+const product = id => S.produits.find(p=>p.id===id);
+const isCounted = a => a.compte!==undefined ? !!a.compte : !!DEFAULT_COMPTE[a.id];
+const isCooked = p => p.cuisine!==undefined ? !!p.cuisine : (DEFAULT_PRODUITS.find(d=>d.id===p.id)?.cuisine ?? true);
+const byPack = a => a.contenu>1 && UNITS.test(a.unite);
+/* The unit she counts in: eggs one by one, condensed milk by the tin. */
+const countUnit = a => byPack(a) ? a.par : (a.unite||a.par);
+const boughtCount = (x,a) => byPack(a) ? x.nb : x.nb*(x.contenu||1);
+/* What one sale of a product uses up from the counted ingredients (one bread per bánh mì, one cup per tea…). */
+function usesOf(p){
+  if(Array.isArray(p.utilise)) return p.utilise.filter(u=>article(u.ref));
+  const v = p.stock!==undefined ? p.stock : DEFAULT_PRODUITS.find(d=>d.id===p.id)?.utilise?.[0]?.ref;
+  return v && v!=='self' && article(v) ? [{ref:v, qte:1}] : [];
+}
+/* Which of the day's lists a product shows in. "Cooked" is opt-in; sold and offered are opt-out. */
+function inSec(p, sec){ return sec==='fait' ? isCooked(p) : !(p.hide && p.hide[sec]); }
+const nameP = p => esc(tr(p.nom));
+const nameA = a => esc(tr(a.nom));
+
+/* "2 plateaux de 30 œufs" / "3 kg" / "4 pains" */
+function packText(nb, a){
+  if(UNITS.test(a.par) || a.contenu===1 && a.par===a.unite || a.contenu===1 && !a.unite) return `${dec(nb)} ${pl(a.par, nb)}`;
+  if(a.contenu===1) return `${dec(nb)} ${pl(a.par, nb)} (${dec(nb)} ${pl(a.unite, nb)})`;
+  const base = `${dec(nb)} ${pl(a.par, nb)} ${L('de','')} ${dec(a.contenu)} ${pl(a.unite, a.contenu)}`.replace(/\s+/g,' ');
+  return nb===1 ? base : `${base} · ${dec(nb*a.contenu)} ${pl(a.unite, nb*a.contenu)}`;
+}
+function buyDetail(a){
+  if(a.autre) return L('Autre dépense','Chi phí khác');
+  if(a.nb!=null) return packText(a.nb, a);
+  return a.qte ? `${dec(a.qte)} ${a.unite||''}` : '';
+}
+function dernierPrix(artId){
+  for(const k of Object.keys(S.days).sort().reverse()){ const f=S.days[k].achats.slice().reverse().find(x=>x.artId===artId && x.prixPar); if(f) return f.prixPar; }
+  return 0;
+}
+
+/* ---------- storage ----------
+   Every change stamps its document with the time it was made; a server copy is applied only if it is at
+   least as recent, so a late copy never undoes a newer tap. Writes wait in a queue kept on the phone
+   until the server confirms them, so nothing is lost when the network drops. */
+const timers = {}, stamp = {};
+let lastT = 0, flushing = false, retryTimer = null;
+const nowT = () => (lastT = Math.max(Date.now(), lastT + 1));
+const copy = v => v==null ? v : JSON.parse(JSON.stringify(v));
+const fresh = (path, data) => ((data && data._t) || 0) >= (stamp[path] || 0);
+let queue = (()=>{ try{ return JSON.parse(localStorage.getItem(QUEUE_KEY)||'{}'); }catch{ return {}; } })();
+const saveQueue = () => { try{ localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); }catch{} };
+function lsLoad(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch{ return null; } }
+function lsSave(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({days:S.days, produits:S.produits, articles:S.articles, frais:S.frais})); }catch{} }
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+
+function persist(path, getBody){
+  stamp[path] = nowT();
+  lsSave();
+  if(S.mode!=='db') return;
+  clearTimeout(timers[path]);
+  timers[path] = setTimeout(()=>{ queue[path] = {...getBody(), _t: stamp[path]}; saveQueue(); flush(); }, 400);
+}
+async function flush(){
+  if(flushing || !db) return;
+  flushing = true;
+  try{
+    for(const path of Object.keys(queue)){
+      const body = queue[path];
+      try{ await withTimeout(db.doc(path).set(body), 12000); if(queue[path]===body) delete queue[path]; saveQueue(); S.offline=false; }
+      catch(e){ S.offline=true; break; }
+    }
+  } finally { flushing = false; }
+  clearTimeout(retryTimer);
+  if(Object.keys(queue).length) retryTimer = setTimeout(flush, 15000);
+  showNet();
+}
+window.addEventListener('online', ()=>flush());
+function showNet(){
+  const el=document.getElementById('net'); if(!el) return;
+  const n=Object.keys(queue).length;
+  el.hidden = !(S.offline && n);
+  el.textContent = L(`Pas de réseau : ${n} changement${n>1?'s':''} en attente. Ils partiront tout seuls quand le réseau revient.`,
+                     `Không có mạng: ${n} thay đổi đang chờ. Sẽ tự gửi khi có mạng lại.`);
+}
+function saveDay(k){ persist('jours/'+k, ()=>{ const d=S.days[k]||{achats:[],ventes:[],mouvements:[]}; return {achats:d.achats, ventes:d.ventes, mouvements:d.mouvements}; }); }
+const saveProduits = () => persist('reglages/produits', ()=>({liste:S.produits}));
+const saveArticles = () => persist('reglages/articles', ()=>({liste:S.articles}));
+const saveFrais = () => persist('reglages/frais', ()=>({liste:S.frais}));
+
+function applyDoc(path, x){
+  if(path.startsWith('jours/')) S.days[path.slice(6)] = normDay(x);
+  else if(path==='reglages/produits' && Array.isArray(x?.liste) && x.liste.length) S.produits = x.liste;
+  else if(path==='reglages/articles' && Array.isArray(x?.liste) && x.liste.length) S.articles = x.liste;
+  else if(path==='reglages/frais' && Array.isArray(x?.liste)) S.frais = x.liste;
+}
+async function boot(){
+  const saved=lsLoad();
+  S.days = saved?.days || {};
+  Object.keys(S.days).forEach(k=>{ S.days[k]=normDay(S.days[k]); });
+  S.produits = saved?.produits?.length ? saved.produits : DEFAULT_PRODUITS.map(p=>copy(p));
+  S.articles = saved?.articles?.length ? saved.articles : DEFAULT_ARTICLES.map(a=>({...a}));
+  S.frais = Array.isArray(saved?.frais) ? saved.frais : [];
+  render();
+  S.mode='local';
+  try{ await navigator.storage?.persist?.(); }catch{}
+  render(); return;
+  S.mode='db';
+  // changes still waiting from an earlier visit win over the server until they are sent
+  Object.entries(queue).forEach(([path, body])=>{ stamp[path]=body._t||0; lastT=Math.max(lastT, body._t||0); applyDoc(path, copy(body)); });
+  db.collection('jours').onSnapshot(snap=>{
+    snap.docs.forEach(doc=>{ const x=copy(doc.data())||{}; if(fresh('jours/'+doc.id, x)) S.days[doc.id]=normDay(x); });
+    lsSave(); requestRender();
+  }, ()=>{ S.offline=true; showNet(); });
+  for(const name of ['produits','articles','frais']){
+    db.doc('reglages/'+name).onSnapshot(snap=>{
+      const x = snap.exists ? copy(snap.data()) : null;
+      if(!x || !fresh('reglages/'+name, x)) return;
+      applyDoc('reglages/'+name, x); lsSave(); requestRender();
+    });
+  }
+  render(); flush();
+}
+
+/* ---------- stock ----------
+   Stock = what came in − what went out + corrections, day by day. Corrections are stored as a
+   difference, so the order of notes inside a day never matters. */
+function stockModel(){
+  const items={}, ing={};
+  const item=(key,nom,unite)=>items[key]||(items[key]={key,nom,unite,days:{},n:0,started:false});
+  S.produits.forEach(p=>item('p:'+p.id, p.nom, lc(p.nom)));
+  S.articles.filter(isCounted).forEach(a=>item('a:'+a.id, a.nom, countUnit(a)));
+  const uses={}; S.produits.forEach(p=>{ uses[p.id]=usesOf(p); });
+  const row=(c,k)=>c.days[k]||(c.days[k]={in:0,out:0,adj:0,after:0});
+  for(const k of Object.keys(S.days).sort()){
+    const d=S.days[k], ev=[];
+    d.achats.forEach(x=>{ if(!x.artId) return; const c=items['a:'+x.artId], a=article(x.artId);
+      if(c && a && x.nb!=null){ row(c,k).in+=boughtCount(x,a); c.started=true; }
+      else if(!c) ev.push({t:x.t||0, id:x.artId, fini:false}); });
+    d.mouvements.forEach(m=>{ const c=items[(m.cible==='p'?'p:':'a:')+m.ref];
+      if(c){
+        if(m.kind==='fait'||m.kind==='ajout'){ row(c,k).in+=m.qte; c.started=true; }
+        else if(m.kind==='reste'||m.kind==='fini'){ row(c,k).adj+=m.qte; c.started=true; }
+        else if(m.kind==='utilise') row(c,k).adj-=m.qte;
+      } else if(m.cible==='a' && (m.kind==='ajout'||m.kind==='fini')) ev.push({t:m.t||0, id:m.ref, fini:m.kind==='fini'});
+      if(m.kind==='fait' && Array.isArray(m.utilise)) m.utilise.forEach(u=>{ const ic=items['a:'+u.ref];
+        if(ic){ if(ic.started && u.qte) row(ic,k).out+=u.qte; } else ev.push({t:m.t||0, id:u.ref, fini:false}); });
+    });
+    d.ventes.forEach(v=>{
+      const own=items['p:'+v.prodId]; if(own && own.started) row(own,k).out+=v.qte;
+      (uses[v.prodId]||[]).forEach(u=>{ const l=items['a:'+u.ref]; if(l && l.started) row(l,k).out+=v.qte*(u.qte||0); }); });
+    Object.values(items).forEach(c=>{ const r=c.days[k]; if(r){ c.n+=r.in-r.out+r.adj; r.after=c.n; } });
+    ev.sort((x,y)=>x.t-y.t).forEach(e=>{
+      const g=ing[e.id]||(ing[e.id]={state:null,since:null,cycles:[],finiLe:null});
+      if(!e.fini){ if(g.state!=='present'){ g.state='present'; g.since=k; } }
+      else { if(g.state==='present') g.cycles.push({from:g.since,to:k}); g.state='fini'; g.finiLe=k; g.since=null; }
+    });
+  }
+  // how many days are left at the pace of the last two weeks
+  const t=todayKey(), from=shift(t,-13);
+  Object.values(items).forEach(c=>{
+    const out=Object.entries(c.days).filter(([k])=>k>=from && k<=t).reduce((s,[,r])=>s+r.out,0);
+    const perDay=out/14; c.daysLeft = perDay>0 && c.n>0 ? c.n/perDay : null;
+  });
+  return {items, ing};
+}
+const remain = c => Math.max(0, Math.round(c.n*100)/100);
+const isSoon = c => c.started && remain(c)>0 && c.daysLeft!==null && c.daysLeft<2;
+
+/* Set a counted item to what she really has today: one correction per item per day, adjusted in place. */
+function setStock(key, target){
+  const c=stockModel().items[key]; if(!c) return;
+  const delta=target-c.n; if(!delta) return;
+  const k=todayKey(), d=ensureDay(k), cible=key[0], ref=key.slice(2);
+  const m=d.mouvements.find(x=>x.kind==='reste' && x.cible===cible && x.ref===ref);
+  if(m) m.qte+=delta; else d.mouvements.push({id:uid(), t:Date.now(), kind:'reste', cible, ref, nom:c.nom, qte:delta});
+  saveDay(k);
+}
+
+/* ---------- what things cost ----------
+   An ingredient's price per counted unit comes from everything she bought; a product's cost adds what
+   one sale uses and its share of the ingredients used in its batches. */
+function unitCosts(){
+  const acc={};
+  Object.values(S.days).forEach(d=>d.achats.forEach(x=>{ const a=x.artId&&article(x.artId); if(!a||x.nb==null) return;
+    const o=acc[a.id]||(acc[a.id]={p:0,u:0}); o.p+=x.prix; o.u+=boughtCount(x,a); }));
+  const out={}; Object.entries(acc).forEach(([id,o])=>{ if(o.u>0) out[id]=o.p/o.u; });
+  return out;
+}
+function productCost(p, uc){
+  let cost=0, known=0, missing=new Set();
+  usesOf(p).forEach(u=>{ if(uc[u.ref]!==undefined){ cost+=u.qte*uc[u.ref]; known++; } else missing.add(article(u.ref)?.nom); });
+  let batchCost=0, made=0;
+  Object.values(S.days).forEach(d=>{ const m=faitMove(d,p.id); if(!m || !(m.utilise||[]).length) return;
+    made+=m.qte; m.utilise.forEach(u=>{ const a=article(u.ref); if(!a) return;
+      if(isCounted(a) && u.qte && uc[u.ref]!==undefined){ batchCost+=u.qte*uc[u.ref]; known++; } else missing.add(a.nom); }); });
+  if(made>0) cost+=batchCost/made;
+  return known ? {cost, missing:[...missing]} : null;
+}
+
+/* ---------- fixed costs ---------- */
+const fraisPerDay = k => S.frais.reduce((s,f)=>s+(f.montant||0),0) / daysInMonth(k);
+
+/* ---------- render ---------- */
+const app = document.getElementById('app');
+function requestRender(){
+  const a=document.activeElement;
+  if(a && /^(INPUT|SELECT)$/.test(a.tagName) && app.contains(a)){ S.renderWanted=true; return; }
+  render();
+}
+app.addEventListener('focusout', ()=>{ setTimeout(()=>{ if(S.renderWanted && !/^(INPUT|SELECT)$/.test(document.activeElement?.tagName||'')) render(); },300); });
+
+function render(){
+  S.renderWanted=false;
+  document.documentElement.lang = LANG;
+  document.body.classList.toggle('big-text', !!prefs.big);
+  const tabs={jour:L('Ma journée','Hôm nay'), stock:L('Stock','Kho'), bilan:L('Bilan','Tổng kết'), prix:L('Mes produits','Sản phẩm')};
+  document.querySelectorAll('.tabs button').forEach(b=>{ b.textContent=tabs[b.dataset.tab]; b.dataset.tab===S.tab?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'); });
+  if(!S.produits) return;
+  const top = `<div class="topbar"><div class="store">${L('Carnet de caisse','Sổ bán hàng')}</div>
+    <div class="prefs" role="group" aria-label="${L('Langue et taille du texte','Ngôn ngữ và cỡ chữ')}">
+      <button data-act="lang" data-v="vi" aria-pressed="${LANG==='vi'}">VI</button>
+      <button data-act="lang" data-v="fr" aria-pressed="${LANG==='fr'}">FR</button>
+      <button data-act="big" aria-pressed="${!!prefs.big}" aria-label="${L('Texte plus grand','Chữ to hơn')}">A+</button>
+    </div></div><div id="net" class="net" hidden></div>`;
+  app.innerHTML = top + (S.tab==='jour' ? viewJour() : S.tab==='stock' ? viewStock() : S.tab==='bilan' ? viewBilan() : viewPrix());
+  showNet();
+}
+
+function stepper(what, id, q, label){
+  return `<div class="step">
+    <button class="minus" data-act="step" data-what="${what}" data-id="${id}" data-d="-1" aria-label="${esc(label)} −1">−</button>
+    <input id="${what}-${id}" class="num" inputmode="decimal" value="${raw(q)}" data-act="setstep" data-what="${what}" data-id="${id}" aria-label="${esc(label)}">
+    <button class="plus" data-act="step" data-what="${what}" data-id="${id}" data-d="1" aria-label="${esc(label)} +1">+</button>
+  </div>`;
+}
+function getStep(what, id){
+  const d=day(S.day);
+  if(what==='vente') return normalLine(d,id)?.qte||0;
+  if(what==='offert') return offertLine(d,id)?.qte||0;
+  if(what==='fait') return faitMove(d,id)?.qte||0;
+  return 0;
+}
+function setStep(what, id, q){
+  q=Math.max(0, Math.round(q));
+  const k=S.day, d=ensureDay(k), p=product(id); if(!p) return;
+  if(what==='vente'){
+    const n=normalLine(d,id);
+    if(!q){ if(n) d.ventes.splice(d.ventes.indexOf(n),1); } else if(n) n.qte=q; else d.ventes.push({id:uid(), prodId:id, nom:p.nom, prix:p.prix, qte:q});
+  } else if(what==='offert'){
+    const n=offertLine(d,id);
+    if(!q){ if(n) d.ventes.splice(d.ventes.indexOf(n),1); } else if(n) n.qte=q; else d.ventes.push({id:uid(), prodId:id, nom:p.nom, prix:0, prixNormal:p.prix, special:true, qte:q});
+  } else if(what==='fait'){
+    const n=faitMove(d,id);
+    if(!q){ if(n) d.mouvements.splice(d.mouvements.indexOf(n),1); } else if(n) n.qte=q; else d.mouvements.push({id:uid(), t:Date.now(), cible:'p', kind:'fait', ref:id, nom:p.nom, qte:q});
+  }
+  saveDay(k);
+}
+/* What she did not earn because of gifts and discounts. */
+function manque(lines){
+  let off=0, offM=0, rem=0, remM=0;
+  lines.forEach(v=>{ if(!v.special) return; const m=Math.max(0,(v.prixNormal||0)-v.prix)*v.qte;
+    if(v.prix===0){ off+=v.qte; offM+=m; } else { rem+=v.qte; remM+=m; } });
+  return {off, offM, rem, remM, total:offM+remM};
+}
+
+function nameX(p, sec){
+  return `<div class="name"><button class="x" data-act="hidesec" data-sec="${sec}" data-id="${p.id}" aria-label="${L('Enlever de cette liste','Bỏ khỏi danh sách này')} : ${nameP(p)}">×</button>${nameP(p)}</div>`;
+}
+function addRow(sec, hidden){
+  const q={vente:L('Qu’avez-vous vendu ?','Đã bán món gì?'), offert:L('Qu’avez-vous offert ?','Đã tặng món gì?'), fait:L('Qu’avez-vous cuisiné ?','Đã nấu món gì?')}[sec];
+  if(S.secAdd===sec) return `<form class="panel sp" data-kind="secnew" data-sec="${sec}" autocomplete="off">
+      <div class="field"><label for="sn-nom">${q}</label><input id="sn-nom" placeholder="${L('ex. Crêpes','vd. Bánh crêpe')}"></div>
+      <div class="field"><label for="sn-prix">${L("Prix de vente d'une pièce (₫)",'Giá bán một cái (₫)')}</label><input id="sn-prix" class="num" inputmode="numeric" placeholder="15000"></div>
+      <p class="hint">${L('Il sera ajouté dans « Mes produits » et partout dans le carnet.','Món này sẽ được thêm vào « Sản phẩm » và mọi nơi trong sổ.')}</p>
+      <div class="row-btns"><button class="btn" type="submit">${L('Ajouter','Thêm')}</button><button class="btn ghost" type="button" data-act="secaddclose">${L('Fermer','Đóng')}</button></div>
+    </form>`;
+  return `<div class="chips">${hidden.map(p=>`<button class="chip extra" data-act="showsec" data-sec="${sec}" data-id="${p.id}">+ ${nameP(p)}</button>`).join('')}<button class="chip extra" data-act="secadd" data-sec="${sec}">${L('+ Autre chose','+ Món khác')}</button></div>`;
+}
+function specialPanel(p){
+  return `<form class="panel sp" data-kind="special" data-id="${p.id}" autocomplete="off">
+    <div class="panel-head"><b>${nameP(p)} ${L('vendu moins cher','bán rẻ hơn')}</b><span>${L('Prix normal','Giá thường')} : ${fmt(p.prix)}</span></div>
+    <div class="pair">
+      <div class="field"><label for="sp-q">${L('Combien','Bao nhiêu')}</label><input id="sp-q" class="num" inputmode="numeric" value="1"></div>
+      <div class="field"><label for="sp-p">${L("Prix d'un (₫)",'Giá một cái (₫)')}</label><input id="sp-p" class="num" inputmode="numeric" placeholder="15000"></div>
+    </div>
+    <div class="row-btns"><button class="btn" type="submit">${L('Ajouter','Thêm')}</button><button class="btn ghost" type="button" data-act="spclose">${L('Fermer','Đóng')}</button></div>
+  </form>`;
+}
+/* What went into a batch: picked from the ingredients she has, taken out of their stock. */
+function usesBlock(p, m){
+  const used=m.utilise||[];
+  const list=used.map(u=>{ const a=article(u.ref); const counted=a&&isCounted(a);
+    return `<div class="use"><span class="use-n">${a?nameA(a):esc(u.nom)}</span>
+      ${counted?`<input id="use-${p.id}-${u.ref}" class="num" inputmode="decimal" value="${u.qte?raw(u.qte):''}" placeholder="0" data-act="useq" data-pid="${p.id}" data-ref="${u.ref}" aria-label="${nameA(a)}"><span class="use-u">${esc(pl(countUnit(a),2))}</span>`:`<span class="use-u">✓</span><span></span>`}
+      <button class="del sm" data-act="usedel" data-pid="${p.id}" data-ref="${u.ref}" aria-label="${L('Enlever','Bỏ')}">×</button></div>`; }).join('');
+  const open=S.cookOpen===p.id;
+  const chips = open ? `<div class="chips">${S.articles.filter(a=>!used.some(u=>u.ref===a.id)).map(a=>`<button class="chip" data-act="useadd" data-pid="${p.id}" data-ref="${a.id}">${nameA(a)}</button>`).join('')}
+      <button class="chip extra" data-act="usenew" data-pid="${p.id}">${L('+ Autre ingrédient','+ Nguyên liệu khác')}</button></div>
+      ${S.useNew===p.id?`<form class="panel sp" data-kind="usenew" data-pid="${p.id}" autocomplete="off"><div class="field"><label for="un-nom">${L("Nom de l'ingrédient",'Tên nguyên liệu')}</label><input id="un-nom" placeholder="${L('ex. Vanille','vd. Vani')}"></div><div class="row-btns"><button class="btn" type="submit">${L('Ajouter','Thêm')}</button></div></form>`:''}
+      <button class="link" data-act="cookclose">${L('Terminé','Xong')}</button>`
+    : `<button class="btn-mini" data-act="cookopen" data-id="${p.id}">${used.length?L('+ Autre ingrédient','+ Nguyên liệu khác'):L('Qu’avez-vous utilisé ?','Đã dùng những gì?')}</button>`;
+  return `<div class="uses">${used.length?`<span class="flabel">${L('Utilisé','Đã dùng')} :</span>${list}`:''}${chips}</div>`;
+}
+
+function buyPanel(){
+  if(!S.pick) return '';
+  if(S.pick==='other') return `
+    <form class="panel" id="buyform" data-kind="other" autocomplete="off">
+      <div class="panel-head"><b>${L('Autre chose','Món khác')}</b><span>${L('Un ingrédient pas dans la liste, ou une dépense (transport, réparation…).','Nguyên liệu không có trong danh sách, hoặc chi phí (đi lại, sửa chữa…).')}</span></div>
+      <div class="field"><label for="ot-nom">${L("C'était quoi ?",'Là gì?')}</label><input id="ot-nom" placeholder="${L('ex. Mayonnaise','vd. Sốt mayonnaise')}"></div>
+      <div class="field"><label for="ot-prix">${L('Combien payé (₫)','Đã trả bao nhiêu (₫)')}</label><input id="ot-prix" class="num" inputmode="numeric" placeholder="30000"></div>
+      <div class="field"><span class="flabel">${L('Le garder dans ma liste ?','Giữ lại trong danh sách?')}</span>
+        <div class="toggle wide"><button type="button" data-act="keep" data-v="1" aria-pressed="${S.keep!==false}">${L('Oui, je le rachèterai','Có, sẽ mua lại')}</button><button type="button" data-act="keep" data-v="0" aria-pressed="${S.keep===false}">${L('Non, une seule fois','Không, chỉ một lần')}</button></div></div>
+      <button class="btn" type="submit">${L('Ajouter','Thêm')}</button>
+    </form>`;
+  if(S.pick==='autre') return `
+    <form class="panel" id="buyform" data-kind="autre" autocomplete="off">
+      <div class="panel-head"><b>${L('Autre dépense','Chi phí khác')}</b><span>${L('Transport, réparation, marché…','Đi lại, sửa chữa, chợ…')}</span></div>
+      <div class="field"><label for="ad-nom">${L("C'était quoi ?",'Là gì?')}</label><input id="ad-nom"></div>
+      <div class="field"><label for="ad-prix">${L('Combien payé (₫)','Đã trả bao nhiêu (₫)')}</label><input id="ad-prix" class="num" inputmode="numeric" placeholder="30000"></div>
+      <button class="btn" type="submit">${L('Ajouter la dépense','Thêm chi phí')}</button>
+    </form>`;
+  if(S.pick==='new') return `
+    <form class="panel" id="buyform" data-kind="new" autocomplete="off">
+      <div class="panel-head"><b>${L("Un article qui n'est pas dans la liste",'Món không có trong danh sách')}</b><span>${L('Il restera dans la liste pour la prochaine fois.','Sẽ được giữ lại cho lần sau.')}</span></div>
+      <div class="field"><label for="na-nom">${L('Son nom','Tên')}</label><input id="na-nom"></div>
+      <button class="btn" type="submit">${L('Continuer','Tiếp tục')}</button>
+    </form>`;
+  const a=article(S.pick); if(!a) return '';
+  const last=dernierPrix(a.id);
+  return `
+    <form class="panel" id="buyform" data-kind="article" autocomplete="off">
+      <div class="panel-head"><b>${nameA(a)}</b></div>
+      <div class="field"><span class="flabel">${L('Acheté par','Mua theo')}</span>
+        <div class="packrow">
+          <input id="bp-pk" value="${esc(tr(a.par))}" aria-label="${L('Acheté par','Mua theo')}">
+          <span>${L('de','gồm')}</span>
+          <input id="bp-ct" class="num" inputmode="decimal" value="${raw(a.contenu)}" aria-label="${L('Combien dedans','Bao nhiêu bên trong')}">
+          <input id="bp-un" value="${esc(trU(a.unite))}" aria-label="${L('Unité','Đơn vị')}">
+        </div>
+        <span class="hint">${L("Changez si aujourd'hui c'est différent (ex. bouteille de 1,5 litre).",'Sửa nếu hôm nay khác (vd. chai 1,5 lít).')}</span></div>
+      <div class="field"><label for="bp-nb">${L('Combien ?','Bao nhiêu?')} (<span id="bp-l1">${esc(pl(a.par,2))}</span>)</label>
+        <div class="step wide">
+          <button type="button" data-act="nb" data-d="-1" aria-label="−1">−</button>
+          <input id="bp-nb" class="num" inputmode="decimal" value="1">
+          <button type="button" class="plus" data-act="nb" data-d="1" aria-label="+1">+</button>
+        </div></div>
+      <div class="pair">
+        <div class="field"><label for="bp-par">${L('Prix pour 1','Giá cho 1')} <span id="bp-l2">${esc(tr(a.par))}</span></label><input id="bp-par" class="num" inputmode="numeric" value="${last||''}" placeholder="₫"></div>
+        <div class="field"><label for="bp-tot">${L('ou total payé','hoặc tổng tiền')}</label><input id="bp-tot" class="num" inputmode="numeric" value="${last||''}" placeholder="₫"></div>
+      </div>
+      ${last?`<p class="hint">${L('La dernière fois','Lần trước')} : ${fmt(last)}</p>`:''}
+      <p class="sum num" id="bp-sum" aria-live="polite"></p>
+      <button class="btn" type="submit">${L("Ajouter l'achat",'Thêm món đã mua')}</button>
+    </form>`;
+}
+function readPanel(){
+  const base=article(S.pick); if(!base) return null;
+  const g=id=>document.getElementById(id).value.trim();
+  const unTr = (typed, orig) => typed===tr(orig) || typed===trU(orig) ? orig : typed;   // keep the stored word if she left the translation as is
+  const par=unTr(g('bp-pk'), base.par)||base.par, contenu=num(g('bp-ct'))||1;
+  const a={...base, par, contenu, unite:unTr(g('bp-un'), base.unite)||(contenu>1?base.unite:par)};
+  return {a, nb:num(g('bp-nb')), par:num(g('bp-par')), tot:num(g('bp-tot'))};
+}
+function refreshSum(){
+  const r=readPanel(); const el=document.getElementById('bp-sum'); if(!r||!el) return;
+  const {a,nb,tot}=r;
+  const l1=document.getElementById('bp-l1'), l2=document.getElementById('bp-l2');
+  if(l1) l1.textContent=pl(a.par,2); if(l2) l2.textContent=tr(a.par);
+  if(!nb || !tot){ el.textContent=''; return; }
+  let t=`${packText(nb,a)} = ${fmt(tot)}`;
+  if(a.contenu>1 && a.unite) t+=` · ${fmt(tot/(nb*a.contenu))} / ${trU(a.unite).replace(LANG==='fr'?/s$/:/$^/,'')}`;
+  el.textContent=t;
+}
+
+function viewJour(){
+  const k=S.day, d=day(k), t=totals(k), today=todayKey(), M=manque(d.ventes);
+  const cls = t.b>0 ? '' : t.b<0 ? 'loss' : 'zero';
+  const verdict = t.v===0 && t.a===0 ? L('Rien de noté pour ce jour','Chưa ghi gì hôm nay') : t.b>0 ? L('Gagné ce jour','Lãi hôm nay') : t.b<0 ? L('Dépensé plus que vendu','Chi nhiều hơn bán') : L('Ni gagné ni perdu','Hòa vốn');
+  const st=stockModel();
+  const resteTxt = p => { const c=st.items['p:'+p.id]; return c&&c.started ? `<span class="${remain(c)?'left':'out'}">${L('il en reste','còn')} ${dec(remain(c))}</span>` : ''; };
+
+  const showV = p => inSec(p,'vente') || d.ventes.some(v=>v.prodId===p.id && v.prix>0);
+  const ventes = S.produits.filter(showV).map(p=>{
+    const q=getStep('vente',p.id), n=normalLine(d,p.id), prix=n?n.prix:p.prix;
+    const sp=d.ventes.filter(v=>v.prodId===p.id && v.special && v.prix>0).map(v=>`<div class="spline num">
+        <span>${v.qte} × <b>${fmt(v.prix)}</b> <span class="tag warn">${L('moins cher','giá rẻ')}</span></span>
+        <span class="spr">${fmt(v.qte*v.prix)}<button class="del sm" data-act="delsp" data-id="${v.id}" aria-label="${L('Supprimer','Xóa')}">×</button></span></div>`).join('');
+    return `<div class="prod">
+      ${nameX(p,'vente')}${stepper('vente',p.id,q,`${tr(p.nom)} ${L('vendus','đã bán')}`)}
+      <div class="meta num">${fmt(prix)} / ${L('pièce','cái')}${q?` · <b>${fmt(q*prix)}</b>`:''}</div>
+      <div class="extra-sales">${sp}${S.special===p.id?specialPanel(p):`<button class="btn-mini" data-act="special" data-id="${p.id}">${L('+ Vendu moins cher','+ Bán rẻ hơn')}</button>`}</div>
+    </div>`;
+  }).join('');
+  const orphans = d.ventes.filter(v=>!product(v.prodId)).map(v=>
+    `<div class="prod"><div class="name">${esc(tr(v.nom))}</div><div class="step"><span class="num"><b>${v.qte}</b></span></div><div class="meta num">${v.prix===0?L('offert','tặng'):fmt(v.prix)} · <b>${fmt(v.qte*v.prix)}</b></div></div>`).join('');
+
+  const showO = p => inSec(p,'offert') || d.ventes.some(v=>v.prodId===p.id && v.prix===0);
+  const offerts = S.produits.filter(showO).map(p=>{
+    const q=getStep('offert',p.id);
+    const legacy=d.ventes.filter(v=>v.prodId===p.id && v.special && v.prix===0 && v.pour).map(v=>`<div class="spline"><span>${v.qte} · ${esc(lc(v.pour))}</span><button class="del sm" data-act="delsp" data-id="${v.id}" aria-label="${L('Supprimer','Xóa')}">×</button></div>`).join('');
+    return `<div class="prod">${nameX(p,'offert')}${stepper('offert',p.id,q,`${tr(p.nom)} ${L('offerts','đã tặng')}`)}
+      <div class="meta num">${q?`<span class="out">${fmt(q*p.prix)} ${L('pas gagnés','không thu')}</span>`:L('gratuit','miễn phí')}</div>${legacy?`<div class="extra-sales">${legacy}</div>`:''}</div>`;
+  }).join('');
+
+  const faits = S.produits.filter(p=>isCooked(p) || faitMove(d,p.id)).map(p=>{
+    const q=getStep('fait',p.id), m=faitMove(d,p.id);
+    return `<div class="prod">${nameX(p,'fait')}${stepper('fait',p.id,q,`${tr(p.nom)} ${L('cuisinés','đã nấu')}`)}
+      <div class="meta num">${resteTxt(p)||'&nbsp;'}</div>${m?usesBlock(p,m):''}</div>`;
+  }).join('') || `<p class="empty">${L('Rien dans cette liste.','Danh sách trống.')}</p>`;
+
+  const counted=S.articles.filter(isCounted);
+  const aRacheter=[...counted.filter(a=>st.items['a:'+a.id]?.started && remain(st.items['a:'+a.id])===0).map(a=>tr(a.nom)),
+    ...S.articles.filter(a=>!isCounted(a) && st.ing[a.id]?.state==='fini').map(a=>tr(a.nom))];
+  const bientot=[...S.produits.map(p=>st.items['p:'+p.id]), ...counted.map(a=>st.items['a:'+a.id])].filter(c=>c&&isSoon(c))
+    .map(c=>`${tr(c.nom)} (${L('≈','≈')}${Math.max(1,Math.round(c.daysLeft))} ${L('jour','ngày')})`);
+  const buys = d.achats.length ? d.achats.map(a=>`<div class="buy">
+      <div class="name">${esc(tr(a.nom))}<span class="qty num">${esc(buyDetail(a))}</span></div>
+      <b class="num">${fmt(a.prix)}</b>
+      <button class="del" data-act="delbuy" data-id="${a.id}" aria-label="${L('Supprimer','Xóa')}">×</button>
+    </div>`).join('') : `<p class="empty">${L('Touchez ce que vous avez acheté.','Chạm vào món đã mua.')}</p>`;
+  const chips = S.editChips
+    ? S.articles.map(a=>`<button class="chip del-chip" data-act="chipdel" data-id="${a.id}">${nameA(a)} <span aria-hidden="true">×</span></button>`).join('')
+      + `<button class="chip extra" data-act="chipedit" aria-pressed="true">${L('Terminé','Xong')}</button>`
+    : S.articles.map(a=>`<button class="chip" data-act="pick" data-id="${a.id}" aria-pressed="${S.pick===a.id}">${nameA(a)}</button>`).join('')
+      + `<button class="chip extra" data-act="pick" data-id="other" aria-pressed="${S.pick==='other'}">${L('+ Autre chose','+ Món khác')}</button>`
+      + `<button class="chip extra" data-act="chipedit">${L('Modifier la liste','Sửa danh sách')}</button>`;
+  const fpd=fraisPerDay(k), hasData=Object.keys(S.days).length>2;
+
+  return `
+  <h1>${L('Bánh mì, flans &amp; thé','Bánh mì, bánh flan &amp; trà')}</h1>
+  <div class="daynav">
+    <button data-act="prev" aria-label="${L('Jour précédent','Ngày trước')}">‹</button>
+    <div class="daylabel"><b>${dayLabel(k)}</b><span>${dateOf(k).toLocaleDateString(LOC(),{day:'numeric',month:'long',year:'numeric'})}</span></div>
+    <button data-act="next" aria-label="${L('Jour suivant','Ngày sau')}" ${k>=today?'disabled':''}>›</button>
+  </div>
+  <section class="result ${cls}" aria-live="polite">
+    <span class="label">${verdict}</span>
+    <span class="big num">${signed(t.b)}</span>
+    <div class="split num"><span>${L('Vendu','Đã bán')} <b>${fmt(t.v)}</b></span><span>${L('Acheté','Đã mua')} <b>${fmt(t.a)}</b></span></div>
+    ${M.total?`<div class="lost num"><b>${L('Pas gagné','Không thu được')} : ${fmt(M.total)}</b><span>${[M.off?`${M.off} ${L('offert'+(M.off>1?'s':''),'tặng')} (${fmt(M.offM)})`:'', M.rem?`${M.rem} ${L('vendu'+(M.rem>1?'s':'')+' moins cher','bán rẻ hơn')} (${fmt(M.remM)})`:''].filter(Boolean).join(' · ')}</span></div>`:''}
+    ${fpd?`<span class="hint num">${L('Loyer et frais fixes','Tiền nhà và chi phí cố định')} : −${fmt(fpd)} ${L('par jour (comptés dans le Bilan)','mỗi ngày (tính trong Tổng kết)')}</span>`:''}
+  </section>
+  ${hasData && (!prefs.lastBackup || daysBetween(prefs.lastBackup, today)>=7)?`<div class="alert soonbox"><b>${L('Pensez à envoyer une sauvegarde','Nhớ gửi bản sao lưu')}</b> · <button class="link" data-act="backup">${L('Envoyer maintenant','Gửi ngay')}</button></div>`:''}
+  ${aRacheter.length?`<div class="alert"><b>${L('À racheter','Cần mua thêm')} :</b> ${aRacheter.map(esc).join(', ')}</div>`:''}
+  ${bientot.length?`<div class="alert soonbox"><b>${L('Bientôt fini','Sắp hết')} :</b> ${bientot.map(esc).join(', ')}</div>`:''}
+  <section class="card sec-vendu">
+    <div class="card-head"><h2>${L("Ce que j'ai vendu",'Đã bán')}</h2><span class="tot num">${fmt(t.v)}</span></div>
+    <div>${ventes}${orphans}</div>
+    ${addRow('vente', S.produits.filter(p=>!showV(p)))}
+  </section>
+  <section class="card sec-offert">
+    <div class="card-head"><h2>${L("Ce que j'ai offert",'Đã tặng')}</h2>${M.offM?`<span class="tot num out">−${fmt(M.offM)}</span>`:''}</div>
+    <p class="hint">${L('Pour la famille, pour vous… Ça ne rapporte rien, mais ça sort du stock.','Cho gia đình, cho mình… Không thu tiền nhưng vẫn trừ vào kho.')}</p>
+    <div>${offerts}</div>
+    ${addRow('offert', S.produits.filter(p=>!showO(p)))}
+  </section>
+  <section class="card sec-fait">
+    <div class="card-head"><h2>${L("Ce que j'ai cuisiné",'Đã nấu')}</h2></div>
+    <div>${faits}</div>
+    ${addRow('fait', S.produits.filter(p=>!isCooked(p) && !faitMove(d,p.id)))}
+  </section>
+  <section class="card sec-achat">
+    <div class="card-head"><h2>${L("Ce que j'ai acheté",'Đã mua')}</h2><span class="tot num">${fmt(t.a)}</span></div>
+    <div>${buys}</div>
+    <div class="chips" role="group">${chips}</div>
+    ${buyPanel()}
+  </section>
+  `;
+}
+
+/* ---------- stock tab ---------- */
+/* Remove from the stock list: an ingredient leaves the list (its past purchases stay), a ready-made product
+   leaves "cooked". Undo is offered in the toast. */
+function delX(key){
+  const id=key.slice(2), isArt=key[0]==='a';
+  return `<button class="x" ${isArt?`data-act="chipdel" data-id="${id}"`:`data-act="hidesec" data-sec="fait" data-id="${id}"`} aria-label="${L('Enlever du stock','Bỏ khỏi kho')}">×</button>`;
+}
+function counterRow(c){
+  const n=remain(c), fixing=S.fixKey===c.key || !c.started;
+  const soon=isSoon(c);
+  return `<div class="srow">
+    <div class="srow-top"><b>${delX(c.key)}${esc(tr(c.nom))}</b>
+      ${c.started?`<span class="sval num ${n===0?'out':''}">${n===0?L('Plus rien','Hết'):`<b>${dec(n)}</b> ${esc(pl(c.unite,n))}${soon?` · <span class="soon">${L('bientôt fini','sắp hết')}</span>`:''}`}</span>`:''}</div>
+    ${fixing ? `<form class="fixrow" data-kind="setstock" data-key="${c.key}" autocomplete="off">
+        <label for="fx-${c.key}">${c.started?L('Combien en avez-vous vraiment ?','Thực sự còn bao nhiêu?'):L('Combien en avez-vous aujourd’hui ?','Hôm nay có bao nhiêu?')}</label>
+        <input id="fx-${c.key}" class="num" inputmode="decimal" placeholder="20"><button class="btn sm" type="submit">OK</button></form>`
+      : `<button class="link quiet" data-act="fix" data-key="${c.key}">${L('Corriger','Sửa')}</button>`}
+  </div>`;
+}
+function viewStock(){
+  const {items, ing}=stockModel();
+  const prods=S.produits.filter(p=>isCooked(p) || items['p:'+p.id].started).map(p=>counterRow(items['p:'+p.id])).join('') || `<p class="empty">${L("Rien de cuisiné à l'avance.",'Chưa có món nấu sẵn.')}</p>`;
+  const counted=S.articles.filter(isCounted).map(a=>counterRow(items['a:'+a.id])).join('');
+  const others=S.articles.filter(a=>!isCounted(a)).map(a=>{
+    const g=ing[a.id], st=g?.state, last=g?.cycles.at(-1), dl=last?daysBetween(last.from,last.to):0;
+    return `<div class="irow">
+      <div class="irow-txt"><b>${delX('a:'+a.id)}${nameA(a)}</b>
+        ${st==='present'?`<span class="ok">${L("J'en ai",'Còn')}</span>`:st==='fini'?`<span class="out">${L('Fini · à racheter','Hết · cần mua')}</span>`:`<span class="hint">${L('pas noté','chưa ghi')}</span>`}
+        ${last?`<span class="hint">${L('Le dernier a duré','Lần trước dùng được')} ${dl?`${dl} ${L('jour'+(dl>1?'s':''),'ngày')}`:L('moins d’un jour','chưa tới 1 ngày')}</span>`:''}</div>
+      <div class="toggle" role="group" aria-label="${nameA(a)}">
+        <button data-act="iajout" data-id="${a.id}" aria-pressed="${st==='present'}">${L("J'en ai",'Còn')}</button>
+        <button data-act="ifini" data-id="${a.id}" aria-pressed="${st==='fini'}">${L('Fini','Hết')}</button>
+      </div>
+    </div>`;
+  }).join('');
+  const f=S.addIng;
+  return `
+  <h1>${L("Ce qu'il me reste",'Còn lại bao nhiêu')}</h1>
+  <p class="hint">${L("Rien à faire ici au quotidien : les ventes, les offerts, ce que vous cuisinez et ce que vous achetez changent les chiffres tout seuls. Le premier jour, écrivez ce que vous avez déjà.",'Không cần làm gì mỗi ngày: bán, tặng, nấu và mua sẽ tự cập nhật số. Ngày đầu tiên, hãy ghi số đang có.')}</p>
+  <section class="card"><div class="card-head"><h2>${L('Prêt à vendre','Sẵn để bán')}</h2></div><p class="hint">${L("Ce que vous avez cuisiné à l'avance (frigo).",'Món đã nấu sẵn (tủ lạnh).')}</p>${prods}</section>
+  <section class="card"><div class="card-head"><h2>${L('Mes ingrédients','Nguyên liệu')}</h2></div><p class="hint">${L('Ceux que vous comptez.','Những thứ có đếm số lượng.')}</p>
+    ${counted || `<p class="empty">${L("Rien n'est compté.",'Chưa đếm món nào.')}</p>`}</section>
+  <section class="card"><div class="card-head"><h2>${L('Mes ingrédients sans compter','Nguyên liệu không đếm')}</h2></div>
+    <p class="hint">${L('Sucre, thé, sauce… Dites seulement si vous en avez ou si c’est fini.','Đường, trà, nước sốt… Chỉ cần ghi còn hay hết.')}</p>
+    ${others || `<p class="empty">—</p>`}</section>
+  <section class="card">
+    ${f ? `<form class="panel" data-kind="adding" autocomplete="off">
+      <div class="panel-head"><b>${L('Ajouter un ingrédient','Thêm nguyên liệu')}</b></div>
+      <div class="field"><label for="ai-nom">${L('Son nom','Tên')}</label><input id="ai-nom" value="${esc(f.nom||'')}"></div>
+      <div class="field"><span class="flabel">${L('Vous voulez compter combien vous en avez ?','Có muốn đếm số lượng không?')}</span>
+        <div class="toggle wide"><button type="button" data-act="aicompte" data-v="1" aria-pressed="${!!f.compte}">${L('Oui, je compte','Có, đếm')}</button><button type="button" data-act="aicompte" data-v="0" aria-pressed="${!f.compte}">${L("Non (j'en ai / fini)",'Không (còn / hết)')}</button></div></div>
+      ${f.compte?`<div class="pair"><div class="field"><label for="ai-q">${L('Combien maintenant','Bây giờ có bao nhiêu')}</label><input id="ai-q" class="num" inputmode="decimal" placeholder="20"></div>
+        <div class="field"><label for="ai-u">${L('En quoi','Đơn vị')}</label><input id="ai-u" placeholder="${L('ex. œufs, litres','vd. quả, lít')}"></div></div>`:''}
+      <div class="row-btns"><button class="btn" type="submit">${L('Ajouter','Thêm')}</button><button class="btn ghost" type="button" data-act="aiclose">${L('Fermer','Đóng')}</button></div>
+    </form>` : `<button class="btn ghost" data-act="aiopen">${L('+ Ajouter un ingrédient','+ Thêm nguyên liệu')}</button>`}
+    <p class="hint">${L('Compter ou non (en vert = compté, touchez pour changer) :','Đếm hay không (màu xanh = có đếm, chạm để đổi):')}</p>
+    <div class="chips">${S.articles.map(a=>`<button class="chip" data-act="compte" data-id="${a.id}" aria-pressed="${isCounted(a)}">${nameA(a)}</button>`).join('')}</div>
+  </section>`;
+}
+
+/* ---------- bilan ---------- */
+function periodKeys(){
+  const t=todayKey(); const keys=[];
+  if(S.periode==='semaine'){ for(let i=6;i>=0;i--) keys.push(shift(t,-i)); }
+  else if(S.periode==='mois'){ const d=dateOf(t); for(let x=new Date(d.getFullYear(),d.getMonth(),1); keyOf(x)<=t; x.setDate(x.getDate()+1)) keys.push(keyOf(x)); }
+  else { const all=Object.keys(S.days).sort(); if(all.length){ for(let k=all[0]; k<=t; k=shift(k,1)) keys.push(k); } }
+  return keys;
+}
+/* Everything that came in and went out on one day. */
+function dayDetail(k){
+  const d=day(k), t=totals(k), M=manque(d.ventes), out=[];
+  const sold=d.ventes.filter(v=>v.prix>0), off=d.ventes.filter(v=>v.prix===0);
+  const made=d.mouvements.filter(m=>m.cible==='p' && m.kind==='fait');
+  const line=(a,b,cls='')=>`<div class="dline ${cls}"><span>${a}</span><b class="num">${b}</b></div>`;
+  if(sold.length) out.push(`<h3>${L('Rentré','Thu')}</h3>`+sold.map(v=>line(`${v.qte} ${esc(tr(v.nom))}${v.special?` <span class="tag warn">${L('moins cher','giá rẻ')}</span>`:''}`, fmt(v.qte*v.prix))).join(''));
+  if(d.achats.length) out.push(`<h3>${L('Sorti','Chi')}</h3>`+d.achats.map(a=>line(`${esc(tr(a.nom))} <span class="hint" style="display:inline">${esc(buyDetail(a))}</span>`, '−'+fmt(a.prix))).join(''));
+  if(off.length || M.remM) out.push(`<h3>${L('Pas gagné','Không thu được')}</h3>`+off.map(v=>line(`${v.qte} ${esc(tr(v.nom))} ${L('offert'+(v.qte>1?'s':''),'tặng')}`, '−'+fmt((v.prixNormal||0)*v.qte),'red')).join('')
+    + (M.remM?line(L('Vendus moins cher','Bán rẻ hơn'), '−'+fmt(M.remM),'red'):''));
+  if(made.length) out.push(`<h3>${L('Cuisiné','Đã nấu')}</h3>`+made.map(m=>line(`${esc(tr(m.nom))}${(m.utilise||[]).length?` <span class="hint" style="display:inline">${L('avec','với')} ${m.utilise.map(u=>esc(lc(tr(article(u.ref)?.nom||u.nom)))+(u.qte?` (${dec(u.qte)})`:'')).join(', ')}</span>`:''}`, dec(m.qte))).join(''));
+  if(!out.length) return `<p class="hint">${L('Rien de noté ce jour.','Ngày này chưa ghi gì.')}</p>`;
+  return out.join('') + line(`<b>${L('Résultat du jour','Kết quả ngày')}</b>`, signed(t.b), t.b<0?'red':'green');
+}
+function viewBilan(){
+  const keys=periodKeys(), uc=unitCosts();
+  let V=0,A=0; const parProduit={}, pertes={};
+  keys.forEach(k=>{ const t=totals(k); V+=t.v; A+=t.a;
+    day(k).ventes.forEach(s=>{
+      if(s.prix>0){ const p=parProduit[s.prodId||s.nom]||(parProduit[s.prodId||s.nom]={nom:s.nom,q:0,m:0}); p.q+=s.qte; p.m+=s.qte*s.prix; }
+      if(s.special){ const m=Math.max(0,(s.prixNormal||0)-s.prix)*s.qte; if(!m) return;
+        const key=(s.prodId||s.nom)+(s.prix===0?'|o':'|r'); const o=pertes[key]||(pertes[key]={nom:s.nom,off:s.prix===0,q:0,m:0}); o.q+=s.qte; o.m+=m; } }); });
+  const F=keys.reduce((s,k)=>s+fraisPerDay(k),0);
+  const B=V-A-F, perteTot=Object.values(pertes).reduce((s,o)=>s+o.m,0);
+  const dep={};
+  keys.forEach(k=>day(k).achats.forEach(x=>{ const g=x.artId||x.nom; const o=dep[g]||(dep[g]={nom:x.nom,m:0}); o.m+=x.prix; }));
+  const depRows=Object.values(dep).sort((a,b)=>b.m-a.m).map(o=>`<div class="rank"><span>${esc(tr(o.nom))}</span><b class="num">${fmt(o.m)}</b></div>`).join('')
+    + (F?`<div class="rank"><span>${L('Loyer et frais fixes','Tiền nhà và chi phí cố định')}</span><b class="num">${fmt(F)}</b></div>`:'') || `<p class="empty">${L('Aucun achat sur cette période.','Không có chi tiêu trong kỳ này.')}</p>`;
+  const ranks=Object.entries(parProduit).sort((a,b)=>b[1].m-a[1].m).map(([id,p])=>{
+    const prod=product(id), c=prod?productCost(prod,uc):null;
+    return `<div class="rank"><span>${esc(tr(p.nom))} <span class="hint" style="display:inline">· ${p.q} ${L('vendus','đã bán')}${c?` · ${L('gagné ≈','lời ≈')} ${fmt(p.m-c.cost*p.q)}`:''}</span></span><b class="num">${fmt(p.m)}</b></div>`; }).join('')
+    || `<p class="empty">${L('Aucune vente sur cette période.','Không có bán hàng trong kỳ này.')}</p>`;
+
+  const vals=keys.map(k=>totals(k).b);
+  const max=Math.max(1,...vals.map(Math.abs));
+  const n=Math.max(keys.length,1), W=320, H=150, mid=H/2, bw=W/n;
+  const bars=vals.map((v,i)=>{ const h=Math.abs(v)/max*(mid-14); const y=v>=0?mid-h:mid; const sel=keys[i]===S.bDay;
+    return `<g data-act="bday" data-k="${keys[i]}" style="cursor:pointer"><rect x="${(i*bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H-14}" fill="${sel?'var(--accent-soft)':'transparent'}"/><rect x="${(i*bw+bw*.15).toFixed(1)}" y="${y.toFixed(1)}" width="${(bw*.7).toFixed(1)}" height="${Math.max(h, v?1.5:0).toFixed(1)}" rx="${Math.min(3,bw*.2).toFixed(1)}" fill="${v>=0?'var(--gain)':'var(--loss)'}"/></g>`; }).join('');
+  const step=Math.ceil(n/7);
+  const labels=keys.map((k,i)=> i%step===0 ? `<text x="${(i*bw+bw/2).toFixed(1)}" y="${H-1}" text-anchor="middle">${S.periode==='semaine'?dateOf(k).toLocaleDateString(LOC(),{weekday:'short'}).slice(0,LANG==='vi'?5:3):dateOf(k).getDate()}</text>` : '').join('');
+  const dayRows=keys.slice().reverse().filter(k=>S.days[k]).map(k=>{ const t=totals(k), open=S.bDay===k;
+    return `<div class="dayrow"><button class="dayrow-head" data-act="bday" data-k="${k}" aria-expanded="${open}">
+        <span>${dayShort(k)}</span><span class="num hint">+${fmt(t.v)} / −${fmt(t.a)}</span><b class="num ${t.b<0?'out':'gain'}">${signed(t.b)}</b></button>
+      ${open?`<div class="daydetail">${dayDetail(k)}</div>`:''}</div>`; }).join('') || `<p class="empty">${L('Rien de noté sur cette période.','Không có ghi chép trong kỳ này.')}</p>`;
+
+  return `
+  <h1>${L("Est-ce que j'ai gagné ?",'Tôi có lãi không?')}</h1>
+  <div class="seg" role="group">
+    <button data-act="per" data-p="semaine" aria-pressed="${S.periode==='semaine'}">${L('7 derniers jours','7 ngày qua')}</button>
+    <button data-act="per" data-p="mois" aria-pressed="${S.periode==='mois'}">${L('Ce mois','Tháng này')}</button>
+    <button data-act="per" data-p="tout" aria-pressed="${S.periode==='tout'}">${L('Depuis le début','Từ đầu')}</button>
+  </div>
+  <section class="result ${B>0?'':B<0?'loss':'zero'}">
+    <span class="label">${B>0?L('Gagné sur la période','Lãi trong kỳ'):B<0?L('Perdu sur la période','Lỗ trong kỳ'):L('Résultat de la période','Kết quả trong kỳ')}</span>
+    <span class="big num">${signed(B)}</span>
+    <div class="split num"><span>${L('Vendu','Đã bán')} <b>${fmt(V)}</b></span><span>${L('Acheté','Đã mua')} <b>${fmt(A)}</b></span>${F?`<span>${L('Frais fixes','Chi phí cố định')} <b>${fmt(F)}</b></span>`:''}</div>
+    ${perteTot?`<div class="lost num"><b>${L('Pas gagné','Không thu được')} : ${fmt(perteTot)}</b><span>${L('offerts et ventes moins chères','tặng và bán rẻ hơn')}</span></div>`:''}
+  </section>
+  <section class="card">
+    <h2>${L('Jour par jour','Từng ngày')}</h2>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${L('Résultat de chaque jour','Kết quả từng ngày')}">
+      <line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--line)" stroke-width="1"/>${bars}${labels}
+    </svg>
+    <p class="hint">${L('Touchez un jour pour voir tout ce qui est rentré et sorti.','Chạm vào một ngày để xem chi tiết thu và chi.')}</p>
+    <div class="days">${dayRows}</div>
+  </section>
+  ${perteTot?`<section class="card loss-card"><div class="card-head"><h2>${L("Où je perds de l'argent",'Mất tiền ở đâu')}</h2><span class="tot num out">−${fmt(perteTot)}</span></div>
+    <div>${Object.values(pertes).sort((a,b)=>b.m-a.m).map(o=>`<div class="rank"><span>${o.q} ${esc(tr(o.nom))} ${o.off?L('offerts','tặng'):L('vendus moins cher','bán rẻ hơn')}</span><b class="num out">−${fmt(o.m)}</b></div>`).join('')}</div>
+    <p class="hint">${L('Ce que ça aurait rapporté au prix normal.','Nếu bán đúng giá thì đã thu được.')}</p></section>`:''}
+  <section class="card"><h2>${L('Ce qui rapporte le plus','Món bán được nhiều tiền nhất')}</h2><div>${ranks}</div></section>
+  <section class="card"><h2>${L("Où part l'argent",'Tiền chi vào đâu')}</h2><div>${depRows}</div></section>
+  <section class="card">
+    <div class="card-head"><h2>${L('Sauvegarde','Sao lưu')}</h2></div>
+    <p class="hint">${L('Vos chiffres sont gardés dans ce téléphone. Envoyez une sauvegarde à votre famille (Zalo, e-mail) de temps en temps : si le téléphone est perdu, on la remet sur le nouveau.','Số liệu được lưu trong điện thoại này. Thỉnh thoảng hãy gửi bản sao lưu cho người nhà (Zalo, email): nếu mất điện thoại, có thể đưa lại vào máy mới.')}</p>
+    ${prefs.lastBackup?`<p class="hint">${L('Dernière sauvegarde','Lần sao lưu gần nhất')} : ${shortDate(prefs.lastBackup)}</p>`:''}
+    <button class="btn" data-act="backup">${L('Envoyer une sauvegarde','Gửi bản sao lưu')}</button>
+    <button class="btn ghost" data-act="export">${L('Envoyer mes chiffres en Excel','Gửi số liệu dạng Excel')}</button>
+    ${S.restore ? `<div class="panel"><b>${L('Remplacer toutes les données par cette sauvegarde ?','Thay toàn bộ dữ liệu bằng bản sao lưu này?')}</b>
+        <span class="hint">${L('Sauvegarde du','Bản sao lưu ngày')} ${esc(S.restore.date||'?')} · ${Object.keys(S.restore.days||{}).length} ${L('jours','ngày')}</span>
+        <div class="row-btns"><button class="btn" data-act="restoreok">${L('Oui, remplacer','Có, thay thế')}</button><button class="btn ghost" data-act="restorecancel">${L('Non','Không')}</button></div></div>`
+      : `<label class="btn ghost filebtn">${L('Remettre une sauvegarde','Khôi phục bản sao lưu')}<input type="file" id="restore-file" accept=".json,application/json" hidden></label>`}
+  </section>`;
+}
+
+/* ---------- products tab ---------- */
+function viewPrix(){
+  const uc=unitCosts();
+  const rows=S.produits.map(p=>{
+    const c=productCost(p,uc);
+    const costTxt = c ? `${L('Coûte environ','Giá vốn khoảng')} <b>${fmt(c.cost)}</b> · ${L('vous gagnez','lời')} <span class="good">${fmt(p.prix-c.cost)}</span> ${L('par pièce','mỗi cái')}${c.missing.length?` <span class="hint" style="display:inline">(${L('sans','chưa tính')} ${c.missing.map(m=>lc(tr(m))).join(', ')})</span>`:''}`
+      : L("Coût inconnu : notez vos achats et ce que vous utilisez, le carnet le calculera.",'Chưa biết giá vốn: ghi món đã mua và đã dùng, sổ sẽ tự tính.');
+    return `<div class="pedit">
+      <input id="pn-${p.id}" value="${esc(p.nom)}" data-act="pnom" data-id="${p.id}" aria-label="${L('Nom du produit','Tên sản phẩm')}">
+      <input id="pp-${p.id}" class="num" inputmode="numeric" value="${p.prix}" data-act="pprix" data-id="${p.id}" aria-label="${L('Prix','Giá')}">
+      <button class="del" data-act="pdel" data-id="${p.id}" aria-label="${L('Retirer','Xóa')}">×</button>
+      <p class="cost">${costTxt}</p>
+      <div class="puse">
+        <span class="flabel">${L(`Pour 1 ${esc(lc(p.nom))} vendu, j'utilise :`,`Bán 1 ${esc(lc(tr(p.nom)))} thì dùng:`)}</span>
+        ${usesOf(p).map(u=>{ const a=article(u.ref); return `<div class="use"><span class="use-n">${nameA(a)}</span>
+          <input id="pu-${p.id}-${u.ref}" class="num" inputmode="decimal" value="${raw(u.qte||0)}" data-act="puq" data-pid="${p.id}" data-ref="${u.ref}" aria-label="${nameA(a)}">
+          <span class="use-u">${esc(pl(countUnit(a),2))}</span>
+          <button class="del sm" data-act="pudel" data-pid="${p.id}" data-ref="${u.ref}" aria-label="${L('Enlever','Bỏ')}">×</button></div>`; }).join('') || `<span class="hint">${L('rien de compté','không dùng gì có đếm')}</span>`}
+        ${S.puseOpen===p.id ? `<div class="chips">${S.articles.filter(a=>isCounted(a) && !usesOf(p).some(u=>u.ref===a.id)).map(a=>`<button class="chip" data-act="puadd" data-pid="${p.id}" data-ref="${a.id}">${nameA(a)}</button>`).join('')}<button class="chip extra" data-act="puclose">${L('Terminé','Xong')}</button></div>`
+          : `<button class="btn-mini" data-act="puopen" data-id="${p.id}">${L('+ Ajouter','+ Thêm')}</button>`}
+      </div>
+    </div>`; }).join('');
+  const frais=S.frais.map(f=>`<div class="fedit">
+      <input id="fn-${f.id}" value="${esc(f.nom)}" data-act="fnom" data-id="${f.id}" aria-label="${L('Nom','Tên')}">
+      <input id="fm-${f.id}" class="num" inputmode="numeric" value="${f.montant||''}" data-act="fmont" data-id="${f.id}" aria-label="${L('Montant par mois','Số tiền mỗi tháng')}" placeholder="₫">
+      <button class="del" data-act="fdel" data-id="${f.id}" aria-label="${L('Supprimer','Xóa')}">×</button></div>`).join('');
+  return `
+  <h1>${L('Mes produits et mes prix','Sản phẩm và giá')}</h1>
+  <section class="card">
+    <div class="card-head"><h2>${L('Ce que je vends','Món tôi bán')}</h2><span class="hint">${L('prix à la pièce','giá một cái')}</span></div>
+    ${rows}
+    <button class="btn ghost" data-act="padd">${L('+ Ajouter un produit','+ Thêm sản phẩm')}</button>
+    <p class="hint">${L('Un produit ajouté ici apparaît tout seul dans « Ma journée ». Changer un prix ne modifie pas les jours déjà passés.','Sản phẩm thêm ở đây sẽ tự xuất hiện trong « Hôm nay ». Đổi giá không làm thay đổi những ngày trước.')}</p>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>${L('Frais fixes du mois','Chi phí cố định mỗi tháng')}</h2></div>
+    <p class="hint">${L('Loyer, électricité, place au marché… Le montant du mois est réparti sur chaque jour dans le Bilan.','Tiền nhà, điện, chỗ ngồi chợ… Số tiền tháng được chia đều cho mỗi ngày trong Tổng kết.')}</p>
+    ${frais}
+    <button class="btn ghost" data-act="fadd">${L('+ Ajouter un frais','+ Thêm chi phí')}</button>
+  </section>`;
+}
+
+/* ---------- export ---------- */
+async function exportCsv(){
+  const h=[L('Date','Ngày'),L('Type','Loại'),L('Nom','Tên'),L('Quantité','Số lượng'),L('Prix','Giá'),L('Total','Tổng'),L('Détail','Chi tiết')];
+  const rows=[h];
+  Object.keys(S.days).sort().forEach(k=>{ const d=S.days[k];
+    d.ventes.forEach(v=>rows.push([k, v.prix===0?L('Offert','Tặng'):v.special?L('Vendu moins cher','Bán rẻ'):L('Vendu','Bán'), tr(v.nom), v.qte, v.prix, v.qte*v.prix, '']));
+    d.achats.forEach(a=>rows.push([k, L('Acheté','Mua'), tr(a.nom), a.nb??'', a.prixPar??'', -a.prix, buyDetail(a)]));
+    d.mouvements.filter(m=>m.kind==='fait').forEach(m=>rows.push([k, L('Cuisiné','Nấu'), tr(m.nom), m.qte, '', '', (m.utilise||[]).map(u=>tr(article(u.ref)?.nom||u.nom)+(u.qte?` ${u.qte}`:'')).join(' + ')]));
+  });
+  const csv='﻿'+rows.map(r=>r.map(x=>{ const s=String(x??''); return /[",\n;]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(',')).join('\r\n');
+  await sendFile(`so-ban-hang-${todayKey()}.csv`, csv, 'text/csv');
+}
+
+/* Hand a file to the phone: the share sheet when there is one (Zalo, e-mail, Files…), a download otherwise. */
+async function sendFile(name, text, type){
+  const file=new File([text], name, {type});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:name}); return true; }
+  }catch(e){ if(e?.name==='AbortError') return false; }
+  const url=URL.createObjectURL(file), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  return true;
+}
+async function backup(){
+  const data={app:'so-ban-hang', version:1, date:todayKey(), days:S.days, produits:S.produits, articles:S.articles, frais:S.frais};
+  if(await sendFile(`sao-luu-${todayKey()}.json`, JSON.stringify(data), 'application/json')){ prefs.lastBackup=todayKey(); savePrefs(); render(); }
+}
+document.addEventListener('change', e=>{
+  if(e.target.id!=='restore-file') return;
+  const f=e.target.files?.[0]; if(!f) return;
+  f.text().then(t=>{ const d=JSON.parse(t); if(!d || d.app!=='so-ban-hang' || typeof d.days!=='object') throw new Error();
+      S.restore=d; render(); })
+    .catch(()=>toast(L("Ce fichier n'est pas une sauvegarde du carnet.",'Tệp này không phải bản sao lưu của sổ.')));
+});
+
+/* ---------- actions ---------- */
+function ingState(id, fini){
+  const x=article(id); if(!x) return;
+  const k=todayKey(); ensureDay(k).mouvements.push({id:uid(), t:Date.now(), cible:'a', kind:fini?'fini':'ajout', ref:id, nom:x.nom, qte:0});
+  saveDay(k); render();
+  toast(fini?`${tr(x.nom)} : ${L('fini, à racheter','hết, cần mua')}`:`${tr(x.nom)} : ${L('vous en avez','còn')}`);
+}
+
+app.addEventListener('click', e=>{
+  const b=e.target.closest('[data-act]'); if(!b || /^(INPUT|SELECT|TEXTAREA|OPTION)$/.test(b.tagName)) return;
+  const a=b.dataset.act, id=b.dataset.id;
+  if(a==='lang'){ LANG=b.dataset.v; prefs.lang=LANG; savePrefs(); }
+  else if(a==='big'){ prefs.big=!prefs.big; savePrefs(); }
+  else if(a==='prev'){ S.day=shift(S.day,-1); S.pick=null; S.special=null; }
+  else if(a==='next'){ if(S.day<todayKey()) S.day=shift(S.day,1); S.pick=null; S.special=null; }
+  else if(a==='step'){ const w=b.dataset.what, before=getStep(w,id); setStep(w, id, before+Number(b.dataset.d)); if(w==='fait' && !before && getStep(w,id)) S.cookOpen=id; }
+  else if(a==='pick'){ S.pick = S.pick===id ? null : id; render(); refreshSum();
+    document.getElementById(id==='other'?'ot-nom':'bp-nb')?.focus({preventScroll:true});
+    document.getElementById('buyform')?.scrollIntoView({block:'nearest', behavior:'smooth'}); return; }
+  else if(a==='nb'){ const el=document.getElementById('bp-nb'); el.value=raw(Math.max(0, num(el.value)+Number(b.dataset.d))); el.dispatchEvent(new Event('input',{bubbles:true})); return; }
+  else if(a==='keep'){ S.keep = b.dataset.v==='1'; const n=document.getElementById('ot-nom')?.value, pr=document.getElementById('ot-prix')?.value; render();
+    if(n) document.getElementById('ot-nom').value=n; if(pr) document.getElementById('ot-prix').value=pr; return; }
+  else if(a==='chipedit'){ S.editChips=!S.editChips; S.pick=null; }
+  else if(a==='chipdel'){
+    const i=S.articles.findIndex(x=>x.id===id); if(i<0) return; const [gone]=S.articles.splice(i,1); saveArticles();
+    toast(`${tr(gone.nom)} ${L('enlevé de la liste','đã bỏ khỏi danh sách')}`, ()=>{ S.articles.splice(i,0,gone); saveArticles(); render(); });
+  }
+  else if(a==='delbuy'||a==='delsp'){
+    const d=ensureDay(S.day), list=a==='delbuy'?d.achats:d.ventes, i=list.findIndex(x=>x.id===id); if(i<0) return;
+    const [gone]=list.splice(i,1); const k=S.day; saveDay(k);
+    toast(L('Supprimé','Đã xóa'), ()=>{ list.splice(i,0,gone); saveDay(k); render(); });
+  }
+  else if(a==='per'){ S.periode=b.dataset.p; S.bDay=null; }
+  else if(a==='bday'){ S.bDay = S.bDay===b.dataset.k ? null : b.dataset.k; render();
+    document.querySelector(`.dayrow-head[data-k="${S.bDay}"]`)?.scrollIntoView({block:'nearest', behavior:'smooth'}); return; }
+  else if(a==='special'){ S.special=id; render(); document.getElementById('sp-p')?.focus(); return; }
+  else if(a==='spclose'){ S.special=null; }
+  else if(a==='hidesec'||a==='showsec'){
+    const p=product(id), sec=b.dataset.sec, show=a==='showsec'; if(!p) return;
+    const apply=v=>{ if(sec==='fait') p.cuisine=v; else p.hide={...(p.hide||{}), [sec]:!v}; saveProduits(); };
+    apply(show);
+    if(!show) toast(`${tr(p.nom)} ${L('enlevé de cette liste','đã bỏ khỏi danh sách này')}`, ()=>{ apply(true); render(); });
+  }
+  else if(a==='secadd'){ S.secAdd=b.dataset.sec; render(); document.getElementById('sn-nom')?.focus(); return; }
+  else if(a==='secaddclose'){ S.secAdd=null; }
+  else if(a==='cookopen'){ S.cookOpen=id; S.useNew=null; }
+  else if(a==='cookclose'){ S.cookOpen=null; S.useNew=null; }
+  else if(a==='useadd'||a==='usedel'){
+    const pid=b.dataset.pid, ref=b.dataset.ref, m=faitMove(ensureDay(S.day),pid); if(!m) return;
+    m.utilise=m.utilise||[];
+    if(a==='usedel') m.utilise=m.utilise.filter(u=>u.ref!==ref);
+    else if(!m.utilise.some(u=>u.ref===ref)) m.utilise.push({ref, nom:article(ref)?.nom||'', qte:0});
+    saveDay(S.day); render();
+    if(a==='useadd') document.getElementById(`use-${pid}-${ref}`)?.focus();
+    return;
+  }
+  else if(a==='usenew'){ S.useNew=b.dataset.pid; render(); document.getElementById('un-nom')?.focus(); return; }
+  else if(a==='fix'){ S.fixKey = S.fixKey===b.dataset.key ? null : b.dataset.key; render(); document.getElementById('fx-'+S.fixKey)?.focus(); return; }
+  else if(a==='iajout'||a==='ifini'){ ingState(id, a==='ifini'); return; }
+  else if(a==='compte'){ const x=article(id); if(x){ x.compte=!isCounted(x); saveArticles(); } }
+  else if(a==='aiopen'){ S.addIng={nom:'', compte:true}; render(); document.getElementById('ai-nom')?.focus(); return; }
+  else if(a==='aiclose'){ S.addIng=null; }
+  else if(a==='aicompte'){ S.addIng={nom:document.getElementById('ai-nom')?.value||'', compte:b.dataset.v==='1'}; }
+  else if(a==='puopen'){ S.puseOpen=id; }
+  else if(a==='puclose'){ S.puseOpen=null; }
+  else if(a==='puadd'||a==='pudel'){
+    const p=product(b.dataset.pid); if(!p) return;
+    const list=usesOf(p).map(u=>({...u}));
+    p.utilise = a==='pudel' ? list.filter(u=>u.ref!==b.dataset.ref) : [...list, {ref:b.dataset.ref, qte:1}];
+    saveProduits();
+  }
+  else if(a==='padd'){ S.produits.push({id:uid(), nom:L('Nouveau produit','Sản phẩm mới'), prix:0, utilise:[], cuisine:true}); saveProduits(); render(); document.getElementById('pn-'+S.produits.at(-1).id)?.select(); return; }
+  else if(a==='pdel'){
+    const i=S.produits.findIndex(x=>x.id===id); const [gone]=S.produits.splice(i,1); saveProduits();
+    toast(`${tr(gone.nom)} ${L('retiré','đã xóa')}`, ()=>{ S.produits.splice(i,0,gone); saveProduits(); render(); });
+  }
+  else if(a==='fadd'){ S.frais.push({id:uid(), nom:L('Loyer','Tiền nhà'), montant:0}); saveFrais(); render(); document.getElementById('fm-'+S.frais.at(-1).id)?.focus(); return; }
+  else if(a==='fdel'){ const i=S.frais.findIndex(x=>x.id===id); const [gone]=S.frais.splice(i,1); saveFrais();
+    toast(L('Supprimé','Đã xóa'), ()=>{ S.frais.splice(i,0,gone); saveFrais(); render(); }); }
+  else if(a==='export'){ exportCsv(); return; }
+  else if(a==='backup'){ backup(); return; }
+  else if(a==='restorecancel'){ S.restore=null; }
+  else if(a==='restoreok'){ const d=S.restore; S.days={}; Object.keys(d.days||{}).forEach(k=>{ S.days[k]=normDay(d.days[k]); });
+    if(d.produits?.length) S.produits=d.produits; if(d.articles?.length) S.articles=d.articles; S.frais=Array.isArray(d.frais)?d.frais:[];
+    S.restore=null; lsSave(); toast(L('Sauvegarde remise','Đã khôi phục')); }
+  render();
+});
+
+app.addEventListener('change', e=>{
+  const t=e.target, a=t.dataset.act, id=t.dataset.id;
+  if(a==='setstep'){ setStep(t.dataset.what, id, num(t.value)); }
+  else if(a==='useq'){ const m=faitMove(ensureDay(S.day),t.dataset.pid); const u=m?.utilise?.find(x=>x.ref===t.dataset.ref); if(u){ u.qte=num(t.value); saveDay(S.day); } }
+  else if(a==='pnom'){ const p=product(id); if(p && t.value.trim()){ p.nom=t.value.trim(); saveProduits(); } }
+  else if(a==='pprix'){ const p=product(id); if(p){ p.prix=Math.round(num(t.value)); saveProduits(); } }
+  else if(a==='puq'){ const p=product(t.dataset.pid); if(p){ p.utilise=usesOf(p).map(u=>u.ref===t.dataset.ref?{...u, qte:num(t.value)}:{...u}); saveProduits(); } }
+  else if(a==='fnom'){ const f=S.frais.find(x=>x.id===id); if(f && t.value.trim()){ f.nom=t.value.trim(); saveFrais(); } }
+  else if(a==='fmont'){ const f=S.frais.find(x=>x.id===id); if(f){ f.montant=Math.round(num(t.value)); saveFrais(); } }
+  else return;
+  S.renderWanted=true;
+});
+app.addEventListener('focusin', e=>{ if(e.target.tagName==='INPUT' && e.target.inputMode) e.target.select(); });
+
+app.addEventListener('submit', e=>{
+  e.preventDefault();
+  const kind=e.target.dataset.kind, k=S.day;
+  const v=id=>document.getElementById(id)?.value.trim()||'';
+  if(kind==='secnew'){
+    const sec=e.target.dataset.sec, nom=v('sn-nom'); if(!nom){ toast(L('Écrivez le nom.','Hãy ghi tên.')); return; }
+    let p=S.produits.find(x=>lc(x.nom)===lc(nom) || lc(tr(x.nom))===lc(nom));
+    if(!p){ p={id:uid(), nom, prix:Math.round(num(v('sn-prix'))), cuisine:sec==='fait', utilise:[]}; S.produits.push(p); }
+    if(sec==='fait') p.cuisine=true; else p.hide={...(p.hide||{}), [sec]:false};
+    saveProduits(); S.secAdd=null; render(); toast(`${nom} ${L('ajouté','đã thêm')}`); return;
+  }
+  if(kind==='setstock'){
+    const r=e.target.querySelector('input').value.trim(); if(r===''){ toast(L('Écrivez un nombre.','Hãy ghi một số.')); return; }
+    setStock(e.target.dataset.key, num(r)); S.fixKey=null; render(); toast(L('Stock noté','Đã ghi kho')); return;
+  }
+  if(kind==='usenew'){
+    const nom=v('un-nom'), pid=e.target.dataset.pid; if(!nom){ toast(L('Écrivez le nom.','Hãy ghi tên.')); return; }
+    let art=S.articles.find(x=>lc(x.nom)===lc(nom) || lc(tr(x.nom))===lc(nom));
+    if(!art){ art={id:uid(), nom, par:'pièce', contenu:1, unite:'pièce', compte:false}; S.articles.push(art); saveArticles(); }
+    const m=faitMove(ensureDay(S.day),pid); if(m){ m.utilise=m.utilise||[]; if(!m.utilise.some(u=>u.ref===art.id)) m.utilise.push({ref:art.id, nom:art.nom, qte:0}); saveDay(S.day); }
+    S.useNew=null; render(); return;
+  }
+  if(kind==='adding'){
+    const nom=v('ai-nom'); if(!nom){ toast(L('Écrivez le nom.','Hãy ghi tên.')); return; }
+    const compte=!!S.addIng?.compte, unite=v('ai-u')||'pièce', q=num(v('ai-q'));
+    let art=S.articles.find(x=>lc(x.nom)===lc(nom) || lc(tr(x.nom))===lc(nom));
+    if(!art){ art={id:uid(), nom, par:unite, contenu:1, unite, compte}; S.articles.push(art); } else art.compte=compte;
+    saveArticles(); S.addIng=null;
+    if(compte && q) setStock('a:'+art.id, q); else if(!compte){ ingState(art.id, false); return; }
+    render(); toast(`${nom} ${L('ajouté','đã thêm')}`); return;
+  }
+  if(kind==='special'){
+    const q=Math.round(num(v('sp-q'))), prix=Math.round(num(v('sp-p')));
+    if(!q){ toast(L('Écrivez combien.','Hãy ghi số lượng.')); return; }
+    if(!prix){ toast(L("Écrivez le prix. Si c'était gratuit, mettez-le dans « Ce que j'ai offert ».",'Hãy ghi giá. Nếu miễn phí, ghi vào « Đã tặng ».')); return; }
+    const p=product(e.target.dataset.id); if(!p) return;
+    ensureDay(k).ventes.push({id:uid(), prodId:p.id, nom:p.nom, qte:q, prix, prixNormal:p.prix, special:true});
+    saveDay(k); S.special=null; render(); return;
+  }
+  if(kind==='other'){
+    const nom=v('ot-nom'), prix=Math.round(num(v('ot-prix')));
+    if(!nom || !prix){ toast(L('Écrivez quoi et combien.','Hãy ghi là gì và bao nhiêu tiền.')); return; }
+    if(S.keep===false) ensureDay(k).achats.push({id:uid(), nom, prix, autre:true});
+    else {
+      let art=S.articles.find(x=>lc(x.nom)===lc(nom) || lc(tr(x.nom))===lc(nom));
+      if(!art){ art={id:uid(), nom, par:'pièce', contenu:1, unite:'pièce', compte:false}; S.articles.push(art); saveArticles(); }
+      ensureDay(k).achats.push({id:uid(), t:Date.now(), artId:art.id, nom:art.nom, nb:1, par:art.par, contenu:art.contenu, unite:art.unite, prixPar:prix, prix});
+    }
+    saveDay(k); S.pick=null; S.keep=true; render(); toast(`${nom} : ${fmt(prix)}`); return;
+  }
+  if(kind==='autre'){
+    const nom=v('ad-nom'), prix=Math.round(num(v('ad-prix')));
+    if(!nom || !prix){ toast(L('Écrivez quoi et combien.','Hãy ghi là gì và bao nhiêu tiền.')); return; }
+    ensureDay(k).achats.push({id:uid(), nom, prix, autre:true});
+    saveDay(k); S.pick=null; render(); return;
+  }
+  if(kind==='new'){
+    const nom=v('na-nom'); if(!nom){ toast(L('Écrivez le nom.','Hãy ghi tên.')); return; }
+    let art=S.articles.find(x=>lc(x.nom)===lc(nom) || lc(tr(x.nom))===lc(nom));
+    if(!art){ art={id:uid(), nom, par:'pièce', contenu:1, unite:'pièce', compte:false}; S.articles.push(art); saveArticles(); }
+    S.pick=art.id; render(); refreshSum(); document.getElementById('bp-pk')?.select(); return;
+  }
+  const r=readPanel(); if(!r) return;
+  if(!r.nb || !r.tot){ toast(L('Écrivez combien et le prix payé.','Hãy ghi số lượng và giá đã trả.')); return; }
+  const {a,nb,tot}=r;
+  const art=article(a.id); if(art && (art.par!==a.par || art.contenu!==a.contenu || art.unite!==a.unite)){ Object.assign(art,{par:a.par,contenu:a.contenu,unite:a.unite}); saveArticles(); }
+  ensureDay(k).achats.push({id:uid(), t:Date.now(), artId:a.id, nom:a.nom, nb, par:a.par, contenu:a.contenu, unite:a.unite, prixPar:Math.round(tot/nb), prix:Math.round(tot)});
+  saveDay(k); S.pick=null; render();
+  toast(`${tr(a.nom)} : ${fmt(tot)}`);
+});
+
+app.addEventListener('input', e=>{
+  const id=e.target.id; if(!id.startsWith('bp-')) return;
+  const r=readPanel(); if(!r) return;
+  if(id==='bp-pk'||id==='bp-ct'||id==='bp-un'){ refreshSum(); return; }
+  if(id==='bp-tot'){ if(r.nb) document.getElementById('bp-par').value = r.tot ? Math.round(r.tot/r.nb) : ''; }
+  else document.getElementById('bp-tot').value = r.nb && r.par ? Math.round(r.nb*r.par) : '';
+  refreshSum();
+});
+
+document.querySelector('.tabs').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  S.tab=b.dataset.tab; S.special=null; S.addIng=null; S.secAdd=null; S.fixKey=null; S.renderWanted=false;
+  render(); window.scrollTo(0,0);
+});
+
+let toastTimer;
+function toast(msg, undo){
+  const el=document.getElementById('toast');
+  el.innerHTML=`<span>${esc(msg)}</span>${undo?`<button type="button">${L('Annuler','Hoàn tác')}</button>`:''}`;
+  el.hidden=false;
+  if(undo) el.querySelector('button').onclick=()=>{ undo(); el.hidden=true; };
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.hidden=true, undo?6000:2600);
+}
+
+boot();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
